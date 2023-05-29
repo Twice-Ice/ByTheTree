@@ -1,0 +1,81 @@
+This is where I will document progress, what needs to get done, what has been done, bugs, and more.
+
+To Do:
+
+    Particles System
+        idk, set up a particles system.
+
+    Title Screen
+        Tree will be by the side or smthn
+
+    End Cutscene
+        All of it.
+        it's by the tree. 
+        maybe it's where the boss is put to rest.
+        some sort of twist, like the boss was your sensei?
+
+    GSM
+        GSM funcitons needs to be moved into a single script and set up globaly instead of just player GSM
+        GSM can be copied over to boss for temp use
+
+    Tutorial section
+        Literally all of it. 
+        tutorial Assets will be removed once boss flag is activated
+        
+        Slash tutorial
+            button prompt for a slash on a dummy enemy.
+        spike tutorial
+            a floating sign telling inputs with the use the crank prompt to hit a floating dummy enemy.
+
+    Player
+        Collisions need to be set up all over player assets/states
+
+        HP system needs to be set up and developed
+
+        Slash
+            need to set up animations (both slash and player animations)
+
+        Spike
+            need to set up visuals
+                particle effects in a circle for attack effect
+                new sprite for when aiming
+
+        Air Slash
+            need to set up animations (both slash and player animations)
+
+    Boss
+        All animations
+        
+        Attacks
+            Each phase of attacks will likely compound into eachother so that phase 1's attacks will be in phase 2's attacks.
+            
+            Phase 1
+                slash
+                
+                jumpSlash
+                    jump and then slash down. like in smash
+                spinSlash
+                    spins around and has a slash. ~40 pixels in width?
+
+            Phase 2
+                teleport
+                    somewhere in a smoke cloud or from one side of the screen to the other side of the screen.
+                smokeBomb
+                    50% dither particles should be spawned everywhere shooting out from where the boss *was*.
+                    the boss will teleport away after doing this attack.
+                    or the boss will start running twards the player?
+                flury
+                    multiple slashes.
+                    slashes are done in one place, each pushing the boss twards the player even more. 
+                shuriken
+                    the boss throws a shuiriken twards the player from a distance. maybe from within a smokeBomb?
+                stompShock
+                    a stomp that has a shockwave that if the player hits this shockwave 
+                    then the player will be in a frozen state where inputs are much less impactful.
+
+                    GSM slows if player is close to the shockwave?
+                    do some geometry math so that the hypotinous has to be a certain lenght, and is mesured from the center of the shockwave, not the boss.
+
+            Phase 3
+                only phase 2 attacks,
+                double damage? 1.5x damage?
