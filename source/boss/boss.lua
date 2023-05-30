@@ -93,14 +93,15 @@ function Boss:init(x, y)
         },
     }, true, "follow")
 
-    self.currentStage = 1
+    self.currentStage = 3
 
     self.realX = x
     self.distanceToPlayerX = self.realX - playerX
     self.distanceToPlayerY = self.y - realPlayerY
     self.followRangeValue = {0, 10}
     self.nextAttack = nil
-    self.moveSpeed = 4
+    self.attackLocation = 0
+    self.moveSpeed = 4 * .9
 
     self:setCollideRect(0, 0, 24, 32)
     self:moveTo(self.distanceToPlayerX + 200, y)
@@ -149,47 +150,57 @@ function Boss:handleRestInput()
 end
 
 function Boss:handleFollowInput()
-    --Player loc = 200
-    --total range = 200 <-[200]-> 400 (0 <-> 200)
-    --cushion value = 65 (close), 40 (far)
-    --new range = 265 <-[95]-> 360 (65 <-> 160)
-    --closeness priority (close to far)
-        --slash or flury, jumpSlash or stompShock, spinSlash, shuriken
+    --[[Player loc = 200
+    total range = 200 <-[200]-> 400 (0 <-> 200)
+    cushion value = 65 (close), 40 (far)
+    new range = 265 <-[95]-> 360 (65 <-> 160)
+    closeness priority (close to far)
+        slash or flury, jumpSlash or stompShock, spinSlash, shuriken
 
-        --smokeBomb can be all, but more leaning far(?)
-        --teleport is part of smokeBomb, not a seperate attack. (at most, a transition animation)
+        smokeBomb can be all, but more leaning far(?)
+        teleport is part of smokeBomb, not a seperate attack. (at most, a transition animation)
 
 
-    --[[ set range, then pick a random number in that range (every frame?, test this) 
+    set range, then pick a random number in that range (every frame?, test this) 
         test if the you're trying to get to the location on the left or right side
         then try to get to that location]]
 
-    local value = 95 + 65
+    --local value = 95 + 65
 
-    --value = math.random(65 + self.followRangeValue[1], 65 + self.followRangeValue[2])
+    print8 = self.attackLocation
 
     if math.abs(self.distanceToPlayerX) >= 0 and math.abs(self.distanceToPlayerX) < 65 then
         local table = {"left", "right"}
         self:changeToDashState(table[math.random(1,2)])
+    elseif self.distanceToPlayerX >= self.attackLocation - self.moveSpeed and self.distanceToPlayerX <= self.attackLocation + self.moveSpeed then
+        self:changeToRestState(2000)
     else
-        if math.abs(value - self.distanceToPlayerX) <= math.abs(-value - self.distanceToPlayerX) then
-            if self.distanceToPlayerX < value then
+        if math.abs(self.attackLocation - self.distanceToPlayerX) <= math.abs(-self.attackLocation - self.distanceToPlayerX) then
+            if self.distanceToPlayerX < self.attackLocation then
                 self.realX += self.moveSpeed * .9
-            elseif self.distanceToPlayerX > value then
+                self.globalFlip = 0
+            elseif self.distanceToPlayerX > self.attackLocation then
                 self.realX -= self.moveSpeed
+                self.globalFlip = 1
             end
         else
-            if self.distanceToPlayerX < -value then
+            if self.distanceToPlayerX < -self.attackLocation then
                 self.realX += self.moveSpeed
-            elseif self.distanceToPlayerX > -value then
+                self.globalFlip = 0
+            elseif self.distanceToPlayerX > -self.attackLocation then
                 self.realX -= self.moveSpeed * .9
+                self.globalFlip = 1
             end
         end
     end
 end
 
 function Boss:handleDashInput()
-    
+    if self.globalFlip == 1 then -- left
+        self.realX -= self.moveSpeed * (2.25 * 1.5)
+    elseif self.globalFlip == 0 then -- right
+        self.realX += self.moveSpeed * (2.25 * 1.5)
+    end
 end
 
 -- state transition functions
@@ -250,6 +261,8 @@ function Boss:changeToFollowState()
         self.followRangeValue = {85, 95}
     end
 
+    self.attackLocation = math.random(65 + self.followRangeValue[1], 65 + self.followRangeValue[2])
+
     self:changeState("follow")
 end
 
@@ -259,5 +272,9 @@ function Boss:changeToDashState(direction)
     elseif direction == "right" then
         self.globalFlip = 0
     end
+
+    pd.timer.performAfterDelay(250, function ()
+        self:changeToFollowState()
+    end)
     self:changeState("dash")
 end

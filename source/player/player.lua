@@ -421,7 +421,7 @@ function Player:handleDashInput()
 
     -- makes dash longer if the direction is held.
     -- these timers continue after your state is changed.
-    pd.timer.performAfterDelay(250, function ()
+    pd.timer.performAfterDelay(200, function ()
         if pd.buttonIsPressed(pd.kButtonLeft) or pd.buttonIsPressed(pd.kButtonRight) then
             pd.timer.performAfterDelay(50, function ()
                 if self.currentState == "dash" then
