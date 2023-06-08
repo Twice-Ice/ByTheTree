@@ -9,8 +9,6 @@ function Mountains:init(x, y, startLocationNum, startMountainsType, parallaxPerc
     self:moveTo(x, y)
     self:setZIndex(zIndex)
 
-    self:setCollideRect(0, 0, 100, 240)
-
     self.y = y
     self.realX = x
     self.distanceToPlayer = self.realX - playerX
@@ -112,19 +110,24 @@ function Mountains:setMountainsImage(mountainsNumber)
     end
 end
 
+-- creates a new mountain tile to the right of a previously set up tile
 function Mountains:newRightTile(tileNumber)
     local mountainsType = nil
-	local currentMountainsTile = math.ceil(mountainsTileTable[tileNumber - 1]/3)
+    local currentMountainsTile = nil
 
+    -- converts the mountain image value into the mountains type value (1 through 4)
+    currentMountainsTile = math.ceil(mountainsTileTable[tileNumber - 1]/3)
+
+    -- mountains logic; rng is weighted so there is less repetition.
 	if currentMountainsTile == 1 or currentMountainsTile == 3 then
-		rng = math.random(1, 4) -- 1, 2
+		local rng = math.random(1, 4) -- 1, 2
         if rng <= 3 then
             mountainsType = 2
         elseif rng == 4 then
             mountainsType = 1
         end
 	elseif currentMountainsTile == 2 or currentMountainsTile == 4 then
-		mountainsType = math.random(1, 4) -- 3, 4
+		local rng = math.random(1, 4) -- 3, 4
         if rng <= 3 then
             mountainsType = 3
         elseif rng == 4 then
@@ -132,23 +135,29 @@ function Mountains:newRightTile(tileNumber)
         end
 	end
 
+    -- converts mountainsType to a digit 1 through 12 for the mountainsTileTable and then changes to the correct updated state
 	mountainsTileTable[tileNumber] = ((mountainsType * 3) - 2) + math.random(0, 2)
     self:setMountainsImage(mountainsTileTable[tileNumber])
 end
 
+-- creates a new mountain tile to the left of a previously set up tile
 function Mountains:newLeftTile(tileNumber)
     local mountainsType = nil
-	local currentMountainsTile = math.ceil(mountainsTileTable[tileNumber + 1]/3)
+    local currentMountainsTile = nil
 
+    -- converts the mountain image value into the mountains type value (1 through 4)
+    currentMountainsTile = math.ceil(mountainsTileTable[tileNumber + 1]/3)
+
+    -- mountains logicl; rng is weighted so there is less repetition
 	if currentMountainsTile == 1 or currentMountainsTile == 2 then
-		rng = math.random(1, 4) -- 1, 3
+		local rng = math.random(1, 4) -- 1, 3
         if rng <= 3 then
             mountainsType = 3
         elseif rng == 4 then
             mountainsType = 1
         end
 	elseif currentMountainsTile == 3 or currentMountainsTile == 4 then
-		mountainsType = math.random(1, 4) -- 2, 4
+		local rng = math.random(1, 4) -- 2, 4
         if rng <= 3 then
             mountainsType = 2
         elseif rng == 4 then
@@ -156,6 +165,7 @@ function Mountains:newLeftTile(tileNumber)
         end
 	end
 
+    -- converts mountainsType to a digit 1 through 12 for the mountainsTileTable and then chagnes to the correct updated state
 	mountainsTileTable[tileNumber] = ((mountainsType * 3) - 2) + math.random(0, 2)
     self:setMountainsImage(mountainsTileTable[tileNumber])
 end
@@ -167,10 +177,20 @@ function Mountains:update()
     if self.x >= 500 then
         self.realX -= 600
         self.location -= 6
-        self:setMountainsImage(mountainsTileTable[self.location])
+        -- detects if the new location is not set and if it's not set then a new tile is created
+        if mountainsTileTable[self.location] == nil then
+            self:newLeftTile(self.location)
+        else
+            self:setMountainsImage(mountainsTileTable[self.location])
+        end
     elseif self.x <= -100 then
         self.realX += 600
         self.location += 6
-        self:setMountainsImage(mountainsTileTable[self.location])
+        -- detects if the new location is not set and if it's not set then a new tile is created
+        if mountainsTileTable[self.location] == nil then
+            self:newRightTile(self.location)
+        else
+            self:setMountainsImage(mountainsTileTable[self.location])
+        end
     end
 end

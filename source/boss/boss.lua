@@ -9,7 +9,7 @@ function Boss:init(x, y)
     self:setZIndex(ZIndexTable.Boss)
     
     self.tickStepTable = {
-        rest = 10,
+        idle = 10,
         dash = 1,
         follow = 4,
         slash = 1,
@@ -25,10 +25,10 @@ function Boss:init(x, y)
     -- need to set up buildup for all of these attacks.
     self:setStates({
         {
-            name = "rest",
+            name = "idle",
             firstFrameIndex = 1,
             framesCount = 3,
-            tickStep = self.tickStepTable.rest,
+            tickStep = self.tickStepTable.idle,
             yoyo = true
         },
         {
@@ -91,7 +91,7 @@ function Boss:init(x, y)
             framesCount = 1,
             tickStep = self.tickStepTable.stompShock,
         },
-    }, true, "follow")
+    }, true, "idle")
 
     self.currentStage = 3
 
@@ -100,8 +100,8 @@ function Boss:init(x, y)
     self.distanceToPlayerY = self.y - realPlayerY
     self.followRangeValue = {0, 10}
     self.nextAttack = nil
-    self.attackLocation = 0
-    self.moveSpeed = 4 * .9
+    self.moveSpeed = 4
+    self.attackLocation = nil
 
     self:setCollideRect(0, 0, 24, 32)
     self:moveTo(self.distanceToPlayerX + 200, y)
@@ -121,8 +121,8 @@ function Boss:update()
 end
 
 function Boss:handleState()
-    if self.currentState == "rest" then -- all
-        self:handleRestInput()
+    if self.currentState == "idle" then -- all
+        self:handleIdleInput()
     elseif self.currentState == "dash" then 
         self:handleDashInput()
     elseif self.currentState == "follow" then -- all
@@ -146,34 +146,53 @@ function Boss:updateLocation()
     end
 end
 
-function Boss:handleRestInput()
+function Boss:handleIdleInput()
 end
 
 function Boss:handleFollowInput()
-    --[[Player loc = 200
-    total range = 200 <-[200]-> 400 (0 <-> 200)
-    cushion value = 65 (close), 40 (far)
-    new range = 265 <-[95]-> 360 (65 <-> 160)
-    closeness priority (close to far)
-        slash or flury, jumpSlash or stompShock, spinSlash, shuriken
+    --Player loc = 200
+    --total range = 200 <-[200]-> 400 (0 <-> 200)
+    --cushion value = 65 (close), 40 (far)
+    --new range = 265 <-[95]-> 360 (65 <-> 160)
+    --closeness priority (close to far)
+        --slash or flury, jumpSlash or stompShock, spinSlash, shuriken
 
-        smokeBomb can be all, but more leaning far(?)
-        teleport is part of smokeBomb, not a seperate attack. (at most, a transition animation)
+        --smokeBomb can be all, but more leaning far(?)
+        --teleport is part of smokeBomb, not a seperate attack. (at most, a transition animation)
 
 
-    set range, then pick a random number in that range (every frame?, test this) 
+    --[[ set range, then pick a random number in that range (every frame?, test this) 
         test if the you're trying to get to the location on the left or right side
         then try to get to that location]]
 
-    --local value = 95 + 65
-
+    self.attackLocation = math.random(65 + self.followRangeValue[1], 65 + self.followRangeValue[2])
     print8 = self.attackLocation
 
     if math.abs(self.distanceToPlayerX) >= 0 and math.abs(self.distanceToPlayerX) < 65 then
-        local table = {"left", "right"}
-        self:changeToDashState(table[math.random(1,2)])
-    elseif self.distanceToPlayerX >= self.attackLocation - self.moveSpeed and self.distanceToPlayerX <= self.attackLocation + self.moveSpeed then
-        self:changeToRestState(2000)
+        local function randomDirection()
+            local direction = {"left", "right"}
+            self:changeToDashState(direction[math.random(1, 2)])
+        end
+
+        if playerState == "dash" then
+            if self.distanceToPlayerX < 0 then
+                self:changeToDashState("right", 250)
+            elseif self.distanceToPlayerX > 0 then
+                self:changeToDashState("left", 250)
+            else
+                randomDirection()
+            end
+        else
+            if self.distanceToPlayerX < 0 then
+                self:changeToDashState("left")
+            elseif self.distanceToPlayerX > 0 then
+                self:changeToDashState("right")
+            else
+                randomDirection()
+            end
+        end
+    elseif math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed then
+        self:changeToNextAttack(self.nextAttack)
     else
         if math.abs(self.attackLocation - self.distanceToPlayerX) <= math.abs(-self.attackLocation - self.distanceToPlayerX) then
             if self.distanceToPlayerX < self.attackLocation then
@@ -196,10 +215,12 @@ function Boss:handleFollowInput()
 end
 
 function Boss:handleDashInput()
-    if self.globalFlip == 1 then -- left
-        self.realX -= self.moveSpeed * (2.25 * 1.5)
+    if math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed then
+        self:changeToNextAttack(self.nextAttack)
+    elseif self.globalFlip == 1 then -- left
+        self.realX -= self.moveSpeed * 3
     elseif self.globalFlip == 0 then -- right
-        self.realX += self.moveSpeed * (2.25 * 1.5)
+        self.realX += self.moveSpeed * 3
     end
 end
 
@@ -210,25 +231,28 @@ function Boss:changeToRandomState(stateOptionTable)
     self:changeState(stateOptionTable[rng])
 end
 
-function Boss:changeToRestState(time)
-    self:changeState("rest")
+function Boss:changeToIdleState(time)
+    self:changeState("idle")
 
     pd.timer.performAfterDelay(time, function ()
-        self:changeState("follow")    
+        self:changeToFollowState()
     end)
 end
 
 function Boss:changeToFollowState()
     local attackTable = nil
-
-    if self.currentStage == 1 then
+    if self.currentStage == 0 then -- for testing purposes 
+        attackTable = {
+            "shuriken"
+        }
+    elseif self.currentStage == 1 then
         attackTable = {
             "slash",--
             "flury",--
             "jumpSlash"--
         }
     elseif self.currentStage == 2 then
-        attackTable = {
+        attackTable = {  
             "slash",
             "jumpSlash",
             "spinSlash",--
@@ -261,20 +285,57 @@ function Boss:changeToFollowState()
         self.followRangeValue = {85, 95}
     end
 
-    self.attackLocation = math.random(65 + self.followRangeValue[1], 65 + self.followRangeValue[2])
-
+    self.nextAttack = attackTable[rng]
     self:changeState("follow")
 end
 
-function Boss:changeToDashState(direction)
+function Boss:changeToDashState(direction, duration)
+    if duration == nil then duration = 200 end
+
     if direction == "left" then
         self.globalFlip = 1
     elseif direction == "right" then
         self.globalFlip = 0
     end
-
-    pd.timer.performAfterDelay(250, function ()
+    pd.timer.performAfterDelay(duration, function ()
         self:changeToFollowState()
     end)
     self:changeState("dash")
+end
+
+function Boss:changeToShurikenState()
+    if self.distanceToPlayerX < 0 then
+        --Shuriken(self.x, "right")
+        print("threw a shuriken to the right")
+    elseif self.distanceToPlayerX > 0 then
+        --Shuriken(self.x, "left")
+        print("threw a shuriken to the left")
+    end
+
+    -- this timer should be set to the amount of frames the shuriken throwing animation frames there are times 1000/40 (1s/fps) then multiplied by the GSM
+    pd.timer.performAfterDelay(500, function ()
+        -- longer idle time bcs boss is farther away from player
+        self:changeToidleState(3000)
+    end)
+end
+
+function Boss:changeToNextAttack(attack)
+    if attack == "slash" then
+
+    elseif attack == "jumpSlash" then
+
+    elseif attack == "flury" then
+
+    elseif attack == "spinSlash" then
+
+    elseif attack == "stompShock" then
+
+    elseif attack == "smokeBomb" then
+
+    elseif attack == "shuriken" then
+        self:changeToShurikenState()
+    end
+
+    print(attack)
+    self:changeToIdleState(1000)
 end

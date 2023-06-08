@@ -88,10 +88,10 @@ end
 groundTileTable = {}
 mountainsTileTable = {}
 mountainsTileTable[0] = math.random(1, 12) -- PERFORMANCE!!!!!!!! this high of a number for the mountains tile table rendering might lead to a crash upon launch?
-for i = 1, 100000 do
+for i = 1, 4 do
 	mountainsTileTable[i] = mountainsLeftTilePicker(i)
 end
-for i = -1, -100000, -1 do
+for i = -1, -4, -1 do
 	mountainsTileTable[i] = mountainsRightTilePicker(i)
 end
 
@@ -133,7 +133,7 @@ function playdate.update()
 		currentFrame = 1
 	end
 
-	print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
+	--print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
 	
 	GSM = gameSpeed/defaultGameSpeed
 	--print(gameSpeed .. "/" .. fps .. " = GSM; " .. GSM )

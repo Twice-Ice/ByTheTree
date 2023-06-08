@@ -24,6 +24,18 @@ function Player:init(x, y)
         spike = 1
     }
 
+    self.stateTable = {
+        "idle",
+        "run",
+        "jump",
+        "slash",
+        "airSlash",
+        "dash",
+        "dashJump",
+        "aimSpike",
+        "spike"
+    }
+
     self:setStates({
         {
             name = "idle",
@@ -110,8 +122,23 @@ function Player:init(x, y)
     self.minSpikeYDistance = self.moveSpeed
     self.spikeX = 0
     self.spikeY = 0
+    self.currentStateNumber = 1
     realPlayerY = self.y
     realPlayerX = self.x
+
+    self.stateFunctionTable = {
+        self.idleState, -- 1
+        self.runState, -- 2
+        self.jumpState, -- 3
+        self.fallState, -- 4
+        self.slashState, -- 5
+        self.airSlashState, -- 6
+        self.dashState, -- 7
+        self.dashJumpState, -- 8
+        self.dashFallState, -- 9 (not set up)
+        self.aimSpikeState, -- 10
+        self.spikeState -- 11
+    }
 
     self:setCollideRect(13, 12, 22, 28)
     self:setGSM()
@@ -127,7 +154,7 @@ function Player:update()
         self:updateAnimation()
 
         if GSM ~= 0 then
-            self:handleState()
+            self:handleStateV2()
         end
 
         self:updateExternalVariables()
@@ -142,7 +169,7 @@ function Player:updateExternalVariables()
     realPlayerY = self.y
     realPlayerX = self.x
 
-    print1 = playerX
+    print1 = self.currentStateNumber
 end
 
 
@@ -356,6 +383,82 @@ function Player:handleState()
     end
 end
 
+--dispatch table stuff
+function Player:handleStateV2()
+    return(self.stateFunctionTable[self.currentStateNumber](self))
+end
+
+function Player:idleState()
+    self:applyGravity()
+    self:handleGroundInput()
+end
+
+function Player:runState()
+    self:applyGravity()
+    self:handleGroundInput()
+end
+
+function Player:jumpState()
+    if self.isJumping then
+        self:moveBy(0, -(self.jumpSpeed * GSM))
+    end
+    self:applyGravity()
+    self:handleAirInput()
+end
+
+function Player:fallState()
+    self:jumpState()
+end
+
+function Player:slashState()
+    --when on ground player can slash either left or right
+    self:handleSlashInput()
+end
+
+function Player:airSlashState()
+            -- when in air, slashes downwards.
+        -- you move faster downwards if you aren't applying jump speed anymore.
+        if self.isJumping then
+            self:moveBy(0, -(self.jumpSpeed * GSM))
+        end
+        self:applyGravity()
+        self:handleAirSlashInput()
+end
+
+function Player:dashState()
+    -- make it so that when you're drifting you can dash out of your drift and the slash goes away as well
+    -- like a spike but on the ground. for the spike you initiate it by pressing A when you're in the air.
+    -- if you press A while on the ground, instead of a spike you do a dash.
+    self:applyGravity()
+    self:handleDashInput()
+end
+
+function Player:dashJumpState()
+    if self.isJumping then
+        self:moveBy(0, -(self.jumpSpeed * GSM))
+    end
+    self:applyGravity()
+    self:handleDashJumpInput()
+end
+
+function Player:dashFallState()
+    self:dashJumpState()
+end
+
+function Player:aimSpikeState()
+    --when on ground you dash, when in air you "aimSpike"
+    if self.isJumping then
+        self:moveBy(0, -(self.jumpSpeed * GSM))
+    end
+    self:applyGravity()
+    self:handleAimSpikeInput()
+end
+
+function Player:spikeState()
+    -- the action of a spike where you shoot twards where you were aiming.
+    self:handleSpikeInput()
+    self:applyGravity(.5)
+end
 
 --      Input Helper Functions
 
@@ -391,7 +494,7 @@ function Player:handleAirInput()
     end
 
     if ((self.yAcceleration * GSM) - self.jumpSpeed) > 0 and self.currentState ~= "fall" then
-        self:changeState("fall")
+        self:changeToFallState()
     end
 end
 
@@ -502,11 +605,18 @@ end
 --State Transitions
 function Player:changeToIdleState()
     self:changeState("idle")
+    self.currentStateNumber = 1
 end
 
 function Player:changeToJumpState()
     self.isJumping = true
     self:changeState("jump")
+    self.currentStateNumber = 3
+end
+
+function Player:changeToFallState()
+    self:changeState("fall")
+    self.currentStateNumber = 4
 end
 
 function Player:changeToRunState(direction)
@@ -518,6 +628,7 @@ function Player:changeToRunState(direction)
         self.globalFlip = 0
     end
     self:changeState("run")
+    self.currentStateNumber = 2
 end
 
 function Player:changeToSlashState()
@@ -527,6 +638,7 @@ function Player:changeToSlashState()
         Slash(self.x, "right", self.groundSlashDuration * (1/GSM))
     end
     self:changeState("slash")
+    self.currentStateNumber = 5
 
     pd.timer.performAfterDelay(self.groundSlashDuration * (1/GSM), function ()
         self:changeToIdleState()
@@ -538,25 +650,29 @@ function Player:changeToAirSlashState()
     Slash(self.x, "down", self.airSlashDuration * (1/GSM))
 
     self:changeState("airSlash")
+    self.currentStateNumber = 6
 
     if self.y > ground - 30 then
-       self:changeState("jump") 
+       self:changeToJumpState()
     end
 end
 
 function Player:changeToDashState()
     self:changeState("dash")
+    self.currentStateNumber = 7
 end
 
 function Player:changeToDashJumpState()
     self.isJumping = true
     self:changeState("dashJump")
+    self.currentStateNumber = 8
 end
 
 function Player:changeToAimSpikeState()
     Spike(self)
     self:setGSM(5)
     self:changeState("aimSpike")
+    self.currentStateNumber = 10
 end
 
 function Player:changeToSpikeState()
@@ -566,6 +682,7 @@ function Player:changeToSpikeState()
     self.minSpikeXDistance = (2 / self.spikeX) * GSM
     self.minSpikeYDistance = (2 / self.spikeY) * GSM
     self:changeState("spike")
+    self.currentStateNumber = 11
 end
 
 --Physics Helper Functions
