@@ -1,17 +1,12 @@
-import "scripts/AnimatedSprite"
+import "entity/entity"
 
 local pd <const> = playdate
 local gfx <const> = pd.graphics
 
-class('Player').extends("AnimatedSprite")
+class('Player').extends("Entity")
 
 function Player:init(x, y)
     local playerTable = gfx.imagetable.new("entity/player/playerImages/player-table-48-48")
-    Player.super.init(self, playerTable)
-    self:moveTo(x,y)
-    self:setZIndex(ZIndexTable.Player)
-
-    -- intended default tickstep values can be found here
     self.tickStepTable = {
         idle = 10,
         run = 4,
@@ -23,20 +18,7 @@ function Player:init(x, y)
         aimSpike = 1,
         spike = 1
     }
-
-    self.stateTable = {
-        "idle",
-        "run",
-        "jump",
-        "slash",
-        "airSlash",
-        "dash",
-        "dashJump",
-        "aimSpike",
-        "spike"
-    }
-
-    self:setStates({
+    local animationStates = {
         {
             name = "idle",
             firstFrameIndex = 1,
@@ -104,7 +86,11 @@ function Player:init(x, y)
             framesCount = 1,
             tickStep = self.tickStepTable.spike
         }
-    }, true, "idle")
+    }
+    Player.super.init(self, playerTable, self.tickStepTable, animationStates)
+    self:moveTo(x,y)
+    self:setZIndex(ZIndexTable.Player)
+    self:setStates(animationStates, true, "idle")
 
     -- Player Base Stats
     self.moveSpeed = 4
@@ -126,6 +112,7 @@ function Player:init(x, y)
     realPlayerY = self.y
     realPlayerX = self.x
 
+    -- used in the player state controller as the dispatch table
     self.stateFunctionTable = {
         self.idleState, -- 1
         self.runState, -- 2
@@ -164,171 +151,11 @@ function Player:update()
 end
 
 
-
 function Player:updateExternalVariables()
     realPlayerY = self.y
     realPlayerX = self.x
 
     print1 = self.currentStateNumber
-end
-
-
---      GSM stuff
--- (all should go through player.lua instead of other scripts.)
-
--- main function that manual (in game) GSM udpates go through
-function Player:updateGSM()
-    if inputsForGSM then
-        if pd.buttonJustPressed(pd.kButtonA) then
-            self:increaseGSM()
-        elseif pd.buttonJustPressed(pd.kButtonB) then
-            self:decreaseGSM()
-        elseif pd.buttonJustPressed(pd.kButtonDown) then
-            self:setGSM()
-        end
-    end
-end
-
--- increases GSM by default at 5 unless told otherwise
-function Player:increaseGSM(value)
-    if value == nil then value = 5 end
-    self.storedYAcceleration = self.yAcceleration
-    gameSpeed += value
-    self:updateTickStep()
-end
-
--- decreases GSM by default at 5 unless told otherwise
-function Player:decreaseGSM(value)
-    if value == nil then value = 5 end
-    self.storedYAcceleration = self.yAcceleration
-    gameSpeed -= 5
-    if gameSpeed == 0 then -- for some reason, doesn't work with GSM but idk why rn 4/14/23
-        self:stopTickStep()
-    else
-        self:updateTickStep()
-    end
-end
-
--- set your value,
--- if value = nil then GSM will be set to default
-function Player:setGSM(value)
-    if value == nil then value = defaultGameSpeed end
-    gameSpeed = value
-    self:resetTickStep()
-    self:updateTickStep()
-end
-
--- sets states to their value according to the tick step table
-function Player:updateStates()
-    self:setStates({
-        {
-            name = "idle",
-            firstFrameIndex = 1,
-            framesCount = 3,
-            tickStep = self.tickStepTable.idle,
-            yoyo = true
-        },
-        {
-            name = "run",
-            firstFrameIndex = 4,
-            framesCount = 5,
-            tickStep = self.tickStepTable.run
-        },
-        {
-            name = "jump",
-            firstFrameIndex = 10,
-            framesCount = 1,
-            tickStep = self.tickStepTable.jump
-        },
-        {
-            name = "fall",
-            firstFrameIndex = 11,
-            framesCount = 1,
-            tickStep = self.tickStepTable.jump
-        },
-        {
-            name = "slash",
-            firstFrameIndex = 1,
-            framesCount = 1,
-            tickStep = self.tickStepTable.slash
-        },
-        {
-            name = "airSlash",
-            firstFrameIndex = 1,
-            framesCount = 1,
-            tickStep = self.tickStepTable.airSlash
-        },
-        {
-            name = "dash",
-            firstFrameIndex = 9,
-            framesCount = 1,
-            tickStep = self.tickStepTable.dash
-        },
-        {
-            name = "dashJump",
-            firstFrameIndex = 12,
-            framesCount = 1,
-            tickStep = self.tickStepTable.dashJump
-        },
-        {
-            name = "dashFall",
-            firstFrameIndex = 13,
-            framesCount = 1,
-            tickStep = self.tickStepTable.dashJump
-        },
-        {
-            name = "aimSpike", -- this is where the player is mid air, time slows and the crank is used
-            firstFrameIndex = 14,
-            framesCount = 1,
-            tickStep = self.tickStepTable.aimSpike
-        },
-        {
-            name = "spike",
-            firstFrameIndex = 1,
-            framesCount = 1,
-            tickStep = self.tickStepTable.spike
-        }
-    }, true)
-end
-
--- sets tickstep values to intended numbers,
--- (you have to manually update these as well as the values in the init function whenever the values are changed)
-function Player:resetTickStep()
-    self.tickStepTable.idle = 10
-    self.tickStepTable.run = 4
-    self.tickStepTable.jump = 1
-    self.tickStepTable.slash = 1
-    self.tickStepTable.airSlash = 1
-    self.tickStepTable.dash = 1
-    self.tickStepTable.spike = 1
-    self:updateStates()
-end
-
--- sets tickstep values in accordance to GSM
-function Player:updateTickStep()
-    local realGSM = gameSpeed/fps
-    --[[lua is being finnicky and it seems that
-    the real GSM updates after all of these calculations are done
-    which leads to wrong numbers and small bugs. This is a workaround.]]
-
-    local inverseGSM = 1/realGSM
-    if realGSM > 0 then
-        self:resetTickStep()
-        -- as of now, it only works updates the things that have actual animations so make sure to delete this and update those when the animations get made
-        self.tickStepTable.idle *= inverseGSM
-        self.tickStepTable.idle = math.ceil(self.tickStepTable.idle)
-        self.tickStepTable.run *= inverseGSM
-        self.tickStepTable.run = math.ceil(self.tickStepTable.run)
-    end
-    self:updateStates()
-end
-
--- sets tickstep values high enough to simulate a pause,
--- couldn't figure out animatedsprite's pause function.
-function Player:stopTickStep()
-    self.tickStepTable.idle = 10000
-    self.tickStepTable.run =  10000
-    self:updateStates()
 end
 
 
