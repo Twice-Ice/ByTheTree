@@ -6,7 +6,7 @@ local gfx <const> = pd.graphics
 class('Player').extends("AnimatedSprite")
 
 function Player:init(x, y)
-    local playerTable = gfx.imagetable.new("player/playerImages/player-table-48-48")
+    local playerTable = gfx.imagetable.new("entity/player/playerImages/player-table-48-48")
     Player.super.init(self, playerTable)
     self:moveTo(x,y)
     self:setZIndex(ZIndexTable.Player)
@@ -149,12 +149,12 @@ end
 function Player:update()
     local pastX = playerX -- set previous x before any changes
 
-        --self:updateGSM()
+        self:updateGSM()
 
         self:updateAnimation()
 
         if GSM ~= 0 then
-            self:handleStateV2()
+            self:handleState()
         end
 
         self:updateExternalVariables()
@@ -334,60 +334,10 @@ end
 
 -- main player controler
 function Player:handleState()
-    if self.currentState == "idle" then
-        self:applyGravity()
-        self:handleGroundInput()
-    elseif self.currentState == "run" then
-        self:applyGravity()
-        self:handleGroundInput()
-    elseif self.currentState == "jump" or self.currentState == "fall" then
-        if self.isJumping then
-            self:moveBy(0, -(self.jumpSpeed * GSM))
-        end
-        self:applyGravity()
-        self:handleAirInput()
-    elseif self.currentState == "slash" then
-        --when on ground player can slash either left or right
-        self:handleSlashInput()
-    elseif self.currentState == "airSlash" then
-        -- when in air, slashes downwards.
-        -- you move faster downwards if you aren't applying jump speed anymore.
-        if self.isJumping then
-            self:moveBy(0, -(self.jumpSpeed * GSM))
-        end
-        self:applyGravity()
-        self:handleAirSlashInput()
-    elseif self.currentState == "dash" then
-        -- make it so that when you're drifting you can dash out of your drift and the slash goes away as well
-        -- like a spike but on the ground. for the spike you initiate it by pressing A when you're in the air.
-        -- if you press A while on the ground, instead of a spike you do a dash.
-        self:applyGravity()
-        self:handleDashInput()
-    elseif self.currentState == "dashJump" or self.currentState == "dashFall" then
-        if self.isJumping then
-            self:moveBy(0, -(self.jumpSpeed * GSM))
-        end
-        self:applyGravity()
-        self:handleDashJumpInput()
-    elseif self.currentState == "aimSpike" then
-    --when on ground you dash, when in air you "aimSpike"
-        if self.isJumping then
-            self:moveBy(0, -(self.jumpSpeed * GSM))
-        end
-        self:applyGravity()
-        self:handleAimSpikeInput()
-    elseif self.currentState == "spike" then
-    -- the action of a spike where you shoot twards where you were aiming.
-        self:handleSpikeInput()
-        self:applyGravity(.5)
-    end
-end
-
---dispatch table stuff
-function Player:handleStateV2()
     return(self.stateFunctionTable[self.currentStateNumber](self))
 end
 
+-- state controller functions
 function Player:idleState()
     self:applyGravity()
     self:handleGroundInput()

@@ -6,7 +6,7 @@ local gfx <const> = pd.graphics
 class('Slash').extends("AnimatedSprite")
 
 function Slash:init(x, direction, duration)
-    local slashTable = gfx.imagetable.new("player/playerImages/slash-table-32-32")
+    local slashTable = gfx.imagetable.new("entity/player/playerImages/slash-table-32-32")
     Slash.super.init(self, slashTable)
 
     self.playerY = realPlayerY

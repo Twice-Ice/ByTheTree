@@ -4,13 +4,14 @@ import "CoreLibs/object"
 import "CoreLibs/timer"
 import "CoreLibs/crank"
 
-import "player/player"
-import "player/playerSlash"
-import "player/playerSpike"
-import "boss/boss"
+import "entity/player/player"
+import "entity/player/playerSlash"
+import "entity/player/playerSpike"
+import "entity/boss/boss"
 import "environment/ground/ground"
 import "environment/background/mountains"
 import "scripts/AnimatedSprite"
+import "entity/entity"
 
 --local json = require 'dkjson'
 --local debuggee = require 'vscode-debuggee'
@@ -31,7 +32,7 @@ pd.display.setRefreshRate(40)
 defaultGameSpeed = 40
 gameSpeed = defaultGameSpeed
 GSM = gameSpeed/fps
-inputsForGSM = false -- manually set, cannot be changed in game.
+inputsForGSM = true -- manually set, cannot be changed in game.
 --GSM; Game Speed Multiplier
 -- higher gameSpeed means higher movement/calculations value. *everything related to movement  SHOULD be multiplied by the GSM*
 

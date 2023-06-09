@@ -7,7 +7,7 @@ class("Spike").extends("AnimatedSprite")
 
 function Spike:init(player)
     -- initializations
-    local SpikeTable = gfx.imagetable.new("player/playerImages/slash-table-32-32")
+    local SpikeTable = gfx.imagetable.new("entity/player/playerImages/slash-table-32-32")
     Spike.super.init(self, SpikeTable)
     self:setCollideRect(10, 10, 10, 10)
     self:setZIndex(ZIndexTable.Spike)

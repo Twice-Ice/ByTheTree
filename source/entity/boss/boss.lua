@@ -4,7 +4,7 @@ local gfx <const> = pd.graphics
 class('Boss').extends('AnimatedSprite')
 
 function Boss:init(x, y)
-    local bossTable = gfx.imagetable.new("boss/bossImages/boss-table-32-32")
+    local bossTable = gfx.imagetable.new("entity/boss/bossImages/boss-table-32-32")
     Boss.super.init(self, bossTable)
     self:setZIndex(ZIndexTable.Boss)
     
