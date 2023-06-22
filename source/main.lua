@@ -32,7 +32,7 @@ pd.display.setRefreshRate(40)
 defaultGameSpeed = 40
 gameSpeed = defaultGameSpeed
 GSM = gameSpeed/fps
-inputsForGSM = true -- manually set, cannot be changed in game.
+inputsForGSM = false -- manually set, cannot be changed in game.
 --GSM; Game Speed Multiplier
 -- higher gameSpeed means higher movement/calculations value. *everything related to movement  SHOULD be multiplied by the GSM*
 
@@ -121,7 +121,7 @@ local function startGame()
 	end
 
 	for i = 0, 5 do
-		Mountains(0 + (i * 100), 120, 0 + i, mountainsTileTable[i], .5, ZIndexTable.Mountains)
+		Mountains(0 + (i * 100), 120, 0 + i, mountainsTileTable[i], .25, ZIndexTable.Mountains)
 	end
 end
 

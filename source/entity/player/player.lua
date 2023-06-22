@@ -99,6 +99,7 @@ function Player:init(x, y)
     self.maxFallSpeed = 75
     self.holdJump = false
     self.isJumping = false
+    self.usedSpike = false
     self.groundSlashDuration = 200
     self.airSlashDuration = 300
     self.driftSpeed = self.moveSpeed
@@ -229,12 +230,20 @@ function Player:aimSpikeState()
     end
     self:applyGravity()
     self:handleAimSpikeInput()
+    if pd.buttonJustPressed(pd.kButtonA) then
+        print("pressed")
+    end
+    print(self.y .. " " .. self.currentState)
 end
 
 function Player:spikeState()
     -- the action of a spike where you shoot twards where you were aiming.
     self:handleSpikeInput()
     self:applyGravity(.5)
+    if pd.buttonJustPressed(pd.kButtonA) then
+        print("pressed")
+    end
+    print(self.y .. " " .. self.currentState)
 end
 
 --      Input Helper Functions
@@ -256,8 +265,8 @@ function Player:handleGroundInput()
 end
 
 function Player:handleAirInput()
-    if pd.buttonJustPressed(pd.kButtonA) then
-        if self.y < ground - 25 then
+    if pd.buttonJustPressed(pd.kButtonA) and self.y < ground - 25 then
+        if self.usedSpike == false then
             self:changeToAimSpikeState()
         end
     elseif pd.buttonJustPressed(pd.kButtonB) then
@@ -359,7 +368,6 @@ function Player:handleSpikeInput()
     -- y movement if player would fall below ground.
     if self.y + self.spikeY >= ground then
         if self.y ~= ground then
-            --self:moveBy(0, ((self.spikeY * (self.spikeDistance)) * GSM) - ground)
             self:moveBy(0, (self.spikeY * self.spikeDistance) - ((self.y + (self.spikeY * self.spikeDistance * GSM)) - ground))
         end
     else
@@ -453,6 +461,7 @@ function Player:changeToAimSpikeState()
 end
 
 function Player:changeToSpikeState()
+    self.usedSpike = true
     self.spikeDistance = 10
     self.spikeX = math.cos(spikeAngle/(180/math.pi))
     self.spikeY = math.sin(spikeAngle/(180/math.pi))
@@ -475,6 +484,7 @@ function Player:applyGravity(multiplier)
             --resets player gravity because player is now on ground
             self.yAcceleration = 1
             self.isJumping = false
+            self.usedSpike = false
             self:changeToIdleState()
         elseif GSM == 0 then
             -- this little bit prevents the player from being stuck flying if they somehow get their y acceleration to be 0

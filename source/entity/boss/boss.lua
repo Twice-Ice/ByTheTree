@@ -4,7 +4,7 @@ local gfx <const> = pd.graphics
 class('Boss').extends('AnimatedSprite')
 
 function Boss:init(x, y)
-    local bossTable = gfx.imagetable.new("entity/boss/bossImages/boss-table-32-32")
+    local bossTable = gfx.imagetable.new("entity/boss/bossImages/boss-table-64-64")
     Boss.super.init(self, bossTable)
     self:setZIndex(ZIndexTable.Boss)
     
@@ -12,7 +12,7 @@ function Boss:init(x, y)
         idle = 10,
         dash = 1,
         follow = 4,
-        slash = 1,
+        slash = 4,
         jumpSlash = 1,
         spinSlash = 1,
         teleport = 1,
@@ -45,9 +45,10 @@ function Boss:init(x, y)
         },
         {
             name = "slash",
-            firstFrameIndex = 10,
-            framesCount = 1,
+            firstFrameIndex = 11,
+            framesCount = 8,
             tickStep = self.tickStepTable.slash,
+            nextAnimation = "idle"
         },
         {
             name = "jumpSlash",
@@ -93,7 +94,7 @@ function Boss:init(x, y)
         },
     }, true, "idle")
 
-    self.currentStage = 3
+    self.currentStage = 0
 
     self.realX = x
     self.distanceToPlayerX = self.realX - playerX
@@ -101,10 +102,21 @@ function Boss:init(x, y)
     self.followRangeValue = {0, 10}
     self.nextAttack = nil
     self.moveSpeed = 4
+    self.attackMoveSpeed = nil
     self.attackLocation = nil
+    self.attackSpeedTable = {}
 
-    self:setCollideRect(0, 0, 24, 32)
+    self:setCollideRect(20, 20, 20, 32)
     self:moveTo(self.distanceToPlayerX + 200, y)
+    self:changeToFollowState()
+    self:establishAnimationEndEvents()
+end
+
+function Boss:establishAnimationEndEvents()
+    self.states["slash"].onAnimationEndEvent = function ()
+        self:changeToIdleState(1500)
+        self:resetCollideRect()
+    end
 end
 
 function Boss:update()
@@ -128,6 +140,7 @@ function Boss:handleState()
     elseif self.currentState == "follow" then -- all
         self:handleFollowInput()
     elseif self.currentState == "slash" then -- short rest
+        self:handleSlashInput()
     elseif self.currentState == "jumpSlash" then -- mid rest
     elseif self.currentState == "spinSlash" then -- long rest
     elseif self.currentState == "smokeBomb" then -- teleport or slash
@@ -137,7 +150,7 @@ function Boss:handleState()
     end
 end
 
--- input helper functions
+-- misc helper functions
 
 function Boss:updateLocation()
     self.distanceToPlayerX = self.realX - playerX
@@ -145,6 +158,21 @@ function Boss:updateLocation()
         self:moveTo(self.distanceToPlayerX + 200, self.y)
     end
 end
+
+    -- updates boss orientation to left or right depending on distance to the player
+function Boss:updateOrientation()
+    if self.distanceToPlayerX >= 0 then -- if the boss is on top of the player then the boss will go left, not a random direction.
+        self.globalFlip = 1 -- left
+    elseif self.distanceToPlayerX < 0 then
+        self.globalFlip = 0 -- right
+    end
+end
+
+function Boss:resetCollideRect()
+    self:setCollideRect(20, 20, 20, 32)
+end
+
+-- input helper functions
 
 function Boss:handleIdleInput()
 end
@@ -224,6 +252,18 @@ function Boss:handleDashInput()
     end
 end
 
+function Boss:handleSlashInput()
+    self:setCollideRect(20, 25, 48, 10) -- need to set for left and right as well as a per frame basis.
+    
+    if self.globalFlip == 1 then -- left
+        self.realX -= self.attackSpeedTable[self._currentFrame - 10]
+    elseif self.globalFlip == 0 then -- right
+        self.realX += self.attackSpeedTable[self._currentFrame - 10]
+    end
+
+    self.states.slash.onFrameChangedEvent = function (self) print(self._currentFrame - 10) end
+end
+
 -- state transition functions
 
 function Boss:changeToRandomState(stateOptionTable)
@@ -243,7 +283,7 @@ function Boss:changeToFollowState()
     local attackTable = nil
     if self.currentStage == 0 then -- for testing purposes 
         attackTable = {
-            "shuriken"
+            "slash"
         }
     elseif self.currentStage == 1 then
         attackTable = {
@@ -315,27 +355,36 @@ function Boss:changeToShurikenState()
     -- this timer should be set to the amount of frames the shuriken throwing animation frames there are times 1000/40 (1s/fps) then multiplied by the GSM
     pd.timer.performAfterDelay(500, function ()
         -- longer idle time bcs boss is farther away from player
-        self:changeToidleState(3000)
+        self:changeToIdleState(3000)
     end)
+end
+
+function Boss:changeToSlashState()
+    self:updateOrientation()
+    self.attackSpeedTable = {
+        0, 0, 3, 5, 6, 5, 2, 2
+    }
+
+    self:changeState("slash")
 end
 
 function Boss:changeToNextAttack(attack)
     if attack == "slash" then
-
+        self:changeToSlashState()
     elseif attack == "jumpSlash" then
-
+        self:changeToIdleState(1000)
     elseif attack == "flury" then
-
+        self:changeToIdleState(1000)
     elseif attack == "spinSlash" then
-
+        self:changeToIdleState(1000)
     elseif attack == "stompShock" then
-
+        self:changeToIdleState(1000)
     elseif attack == "smokeBomb" then
-
+        self:changeToIdleState(1000)
     elseif attack == "shuriken" then
         self:changeToShurikenState()
+        self:changeToIdleState(1000)
     end
 
-    print(attack)
-    self:changeToIdleState(1000)
+    --print(attack)
 end
