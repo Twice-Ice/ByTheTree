@@ -105,8 +105,9 @@ function Boss:init(x, y)
     self.attackMoveSpeed = nil
     self.attackLocation = nil
     self.attackSpeedTable = {}
+    self.attackRectTable = {}
 
-    self:setCollideRect(20, 20, 20, 32)
+    self:resetCollideRect() -- this makes it so that idle animation hitbox is in the same location in the code.
     self:moveTo(self.distanceToPlayerX + 200, y)
     self:changeToFollowState()
     self:establishAnimationEndEvents()
@@ -114,7 +115,7 @@ end
 
 function Boss:establishAnimationEndEvents()
     self.states["slash"].onAnimationEndEvent = function ()
-        self:changeToIdleState(1500)
+        self:changeToIdleState(500)
         self:resetCollideRect()
     end
 end
@@ -169,7 +170,17 @@ function Boss:updateOrientation()
 end
 
 function Boss:resetCollideRect()
-    self:setCollideRect(20, 20, 20, 32)
+    self:setCollideRect(24, 21, 17, 26)
+end
+
+function Boss:updateAttackCollideRect(firstFrameIndex, direction)
+    firstFrameIndex -= 1
+    if direction == "left" then
+        -- for x you take the inverse of x, -x; add the length of the sprite table, 64; and then subtract the width of the collision rect.
+        self:setCollideRect(((-self.attackRectTable[self._currentFrame - firstFrameIndex][1] + 64) - self.attackRectTable[self._currentFrame - firstFrameIndex][3]), self.attackRectTable[self._currentFrame - firstFrameIndex][2], self.attackRectTable[self._currentFrame - firstFrameIndex][3], self.attackRectTable[self._currentFrame - firstFrameIndex][4])
+    elseif direction == "right" then
+        self:setCollideRect(self.attackRectTable[self._currentFrame - firstFrameIndex][1], self.attackRectTable[self._currentFrame - firstFrameIndex][2], self.attackRectTable[self._currentFrame - firstFrameIndex][3], self.attackRectTable[self._currentFrame - firstFrameIndex][4])
+    end
 end
 
 -- input helper functions
@@ -253,12 +264,13 @@ function Boss:handleDashInput()
 end
 
 function Boss:handleSlashInput()
-    self:setCollideRect(20, 25, 48, 10) -- need to set for left and right as well as a per frame basis.
-    
+    -- turns the current selected frame into a number starting at 1, then uses that to move the correct amount of speed depending on the current animation frame.
     if self.globalFlip == 1 then -- left
         self.realX -= self.attackSpeedTable[self._currentFrame - 10]
+        self:updateAttackCollideRect(11, "left")
     elseif self.globalFlip == 0 then -- right
         self.realX += self.attackSpeedTable[self._currentFrame - 10]
+        self:updateAttackCollideRect(11, "right")
     end
 
     self.states.slash.onFrameChangedEvent = function (self) print(self._currentFrame - 10) end
@@ -362,14 +374,24 @@ end
 function Boss:changeToSlashState()
     self:updateOrientation()
     self.attackSpeedTable = {
-        0, 0, 3, 5, 6, 5, 2, 2
+        0, 0, 6, 10, 12, 5, 2, 2
+    }
+    self.attackRectTable = {
+        {24, 21, 20, 26},
+        {22, 22, 22, 25},
+        {19, 23, 26, 24},
+        {19, 27, 44, 10},
+        {19, 27, 44, 10},
+        {19, 27, 44, 10},
+        {27, 25, 31, 11},
+        {26, 22, 17, 25},
     }
 
     self:changeState("slash")
 end
 
 function Boss:changeToNextAttack(attack)
-    if attack == "slash" then
+    if attack == "slash" then -- DONE
         self:changeToSlashState()
     elseif attack == "jumpSlash" then
         self:changeToIdleState(1000)
