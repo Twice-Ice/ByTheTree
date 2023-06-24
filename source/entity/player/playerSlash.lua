@@ -27,6 +27,8 @@ function Slash:init(x, direction, duration)
     pd.timer.performAfterDelay(duration, function ()
         self:remove()
     end)
+
+    self:setCollideRect(-5, -5, 42, 42)
 end
 
 function Slash:update()
@@ -41,7 +43,7 @@ function Slash:update()
     elseif self.direction == "down" then
         self:moveTo(self.spawnX, self.playerY + 20)
     end
-    
+
     if self.y == ground - 30 then
         self:remove()
     end

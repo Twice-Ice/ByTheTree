@@ -18,7 +18,7 @@ function Player:init(x, y)
         aimSpike = 1,
         spike = 1
     }
-    local animationStates = {
+    self.animationStates = {
         {
             name = "idle",
             firstFrameIndex = 1,
@@ -87,10 +87,10 @@ function Player:init(x, y)
             tickStep = self.tickStepTable.spike
         }
     }
-    Player.super.init(self, playerTable, self.tickStepTable, animationStates)
+    Player.super.init(self, playerTable, self.tickStepTable, self.animationStates)
     self:moveTo(x,y)
     self:setZIndex(ZIndexTable.Player)
-    self:setStates(animationStates, true, "idle")
+    self:setStates(self.animationStates, true, "idle")
 
     -- Player Base Stats
     self.moveSpeed = 4
@@ -145,20 +145,32 @@ function Player:update()
             self:handleState()
         end
 
+        if updateStates then
+            self:updateStates()
+            updateStates = false
+        end
+
         self:updateExternalVariables()
+
+        self:handleCollisions()
 
     distTraveled = pastX - playerX
     totalDistanceTraveled += math.sqrt(distTraveled^2) -- this could be bad for performance but idk
 end
 
+-- misc functions
 
 function Player:updateExternalVariables()
     realPlayerY = self.y
     realPlayerX = self.x
 
-    print1 = self.currentStateNumber
+    print1 = currentFrame
+    print5 = self.currentState
 end
 
+function Player:updateStates()
+    self:setStates(self.animationStates, true)
+end
 
 -- main player controler
 function Player:handleState()
@@ -230,20 +242,12 @@ function Player:aimSpikeState()
     end
     self:applyGravity()
     self:handleAimSpikeInput()
-    if pd.buttonJustPressed(pd.kButtonA) then
-        print("pressed")
-    end
-    print(self.y .. " " .. self.currentState)
 end
 
 function Player:spikeState()
     -- the action of a spike where you shoot twards where you were aiming.
     self:handleSpikeInput()
     self:applyGravity(.5)
-    if pd.buttonJustPressed(pd.kButtonA) then
-        print("pressed")
-    end
-    print(self.y .. " " .. self.currentState)
 end
 
 --      Input Helper Functions
@@ -265,7 +269,7 @@ function Player:handleGroundInput()
 end
 
 function Player:handleAirInput()
-    if pd.buttonJustPressed(pd.kButtonA) and self.y < ground - 25 then
+    if pd.buttonJustPressed(pd.kButtonA) and self.y < ground - 20 then
         if self.usedSpike == false then
             self:changeToAimSpikeState()
         end
@@ -277,10 +281,6 @@ function Player:handleAirInput()
         playerX -= (self.moveSpeed * GSM)
     elseif pd.buttonIsPressed(pd.kButtonRight) then
         playerX += (self.moveSpeed * GSM)
-    end
-
-    if ((self.yAcceleration * GSM) - self.jumpSpeed) > 0 and self.currentState ~= "fall" then
-        self:changeToFallState()
     end
 end
 
@@ -294,10 +294,10 @@ function Player:handleSlashInput()
 end
 
 function Player:handleAirSlashInput()
-    if self.globalFlip == 1 then -- left
-        playerX -= (self.moveSpeed * GSM)
-    elseif self.globalFlip == 0 then -- right
-        playerX += (self.moveSpeed * GSM)
+    if pd.buttonIsPressed(pd.kButtonLeft) then
+        playerX -= self.moveSpeed * GSM
+    elseif pd.buttonIsPressed(pd.kButtonRight) then
+        playerX += self.moveSpeed * GSM
     end
 end
 
@@ -310,16 +310,24 @@ function Player:handleDashInput()
 
     -- makes dash longer if the direction is held.
     -- these timers continue after your state is changed.
-    pd.timer.performAfterDelay(200, function ()
+    pd.timer.performAfterDelay(200 * (1/GSM), function ()
         if pd.buttonIsPressed(pd.kButtonLeft) or pd.buttonIsPressed(pd.kButtonRight) then
-            pd.timer.performAfterDelay(50, function ()
+            pd.timer.performAfterDelay(100 * (1/GSM), function ()
                 if self.currentState == "dash" then
-                    self:changeToIdleState()
+                self:changeToIdleState()
+                elseif self.currentState == "dashJump" then
+                    self:changeToJumpState()
+                elseif self.currentState == "dashFall" then
+                    self:changeToFallState()
                 end
             end)
         else
             if self.currentState == "dash" then
                 self:changeToIdleState()
+            elseif self.currentState == "dashJump" then
+                self:changeToJumpState()
+            elseif self.currentState == "dashFall" then
+                self:changeToFallState()
             end
         end
     end)
@@ -394,6 +402,15 @@ function Player:changeToIdleState()
 end
 
 function Player:changeToJumpState()
+    pd.timer.performAfterDelay(200, function ()
+        if pd.buttonIsPressed(pd.kButtonUp) and self.currentState == "jump" then
+            self.jumpSpeed = 7
+        elseif (not pd.buttonIsPressed(pd.kButtonUp)) and self.currentState == "jump" then
+            self.jumpSpeed = 5
+        end
+    end)
+
+    self.jumpSpeed = 6
     self.isJumping = true
     self:changeState("jump")
     self.currentStateNumber = 3
@@ -471,7 +488,7 @@ function Player:changeToSpikeState()
     self.currentStateNumber = 11
 end
 
---Physics Helper Functions
+-- Physics Helper Functions
 
 -- Gravity function, don't set multiplier to 0.
 function Player:applyGravity(multiplier)
@@ -497,6 +514,24 @@ function Player:applyGravity(multiplier)
                 self.yAcceleration *= 1 + ((.12 * GSM) * multiplier)
             else
                 self.yAcceleration = ((self.maxFallSpeed * GSM) * multiplier) -- max player fall speed
+            end
+        end
+    end
+end
+
+-- Collision Functions
+
+function Player:handleCollisions()
+    local actualX, actualY, collisions, length = self:checkCollisions(self.x, self.y)
+    if length > 0 then
+        for index, collision in pairs(collisions) do
+            local collidedObject = collision['other']
+            if collidedObject:isa(Boss) then
+                if not (self.currentState == "dash" or self.currentState == "dashJump" or self.currentState == "dashFall") then
+                    setShakeAmount(5)
+                elseif self.currentState == "aimSpike" then
+                    self:changeToFallState()
+                end
             end
         end
     end

@@ -48,7 +48,7 @@ end
 
 -- sets states to their value according to the tick step table
 function Entity:updateStates()
-    self:setStates(self.statesTable, true)
+    updateStates = true
 end
 
 -- set your value,

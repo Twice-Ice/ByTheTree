@@ -10,6 +10,7 @@ import "entity/player/playerSpike"
 import "entity/boss/boss"
 import "environment/ground/ground"
 import "environment/background/mountains"
+import "environment/screenShake/screenShake"
 import "scripts/AnimatedSprite"
 import "entity/entity"
 
@@ -33,6 +34,7 @@ defaultGameSpeed = 40
 gameSpeed = defaultGameSpeed
 GSM = gameSpeed/fps
 inputsForGSM = false -- manually set, cannot be changed in game.
+updateStates = false -- tells sprites to update their states and ticksteps.
 --GSM; Game Speed Multiplier
 -- higher gameSpeed means higher movement/calculations value. *everything related to movement  SHOULD be multiplied by the GSM*
 
@@ -49,9 +51,14 @@ ZIndexTable = {
 	Spike = 51,
 	Player = 50,
 	Slashes = 49,
-	Ground = 25,
+	Ground = 70,
 	Mountains = 10,
 }
+
+local screenShakeSprite = ScreenShake()
+function setShakeAmount(number)
+	screenShakeSprite:setShakeAmount(number)
+end
 
 local function mountainsLeftTilePicker(tileNumber)
 	local mountainsType = nil
@@ -134,7 +141,7 @@ function playdate.update()
 		currentFrame = 1
 	end
 
-	--print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
+	print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
 	
 	GSM = gameSpeed/defaultGameSpeed
 	--print(gameSpeed .. "/" .. fps .. " = GSM; " .. GSM )

@@ -102,6 +102,7 @@ function Boss:init(x, y)
     self.followRangeValue = {0, 10}
     self.nextAttack = nil
     self.moveSpeed = 4
+    self.dashTimer = nil
     self.attackMoveSpeed = nil
     self.attackLocation = nil
     self.attackSpeedTable = {}
@@ -121,16 +122,23 @@ function Boss:establishAnimationEndEvents()
 end
 
 function Boss:update()
+    self:handleCollisions()
+
     self:updateLocation()
 
     if (self.distanceToPlayerX >= -240) and (self.distanceToPlayerX <= 240) then
         self:updateAnimation()
     end
 
-    self:handleState()
+    self.doBoss = false
 
-    print4 = self.realX
-    print6 = self.distanceToPlayerX
+    if self.doBoss then
+        self:handleState()
+    else
+        self:changeState("idle")
+    end
+
+    print3 = self.distanceToPlayerX
 end
 
 function Boss:handleState()
@@ -174,6 +182,7 @@ function Boss:resetCollideRect()
 end
 
 function Boss:updateAttackCollideRect(firstFrameIndex, direction)
+    -- https://www.desmos.com/calculator/pv9vj8xurp -- graph showing how this all works (kinda?)
     firstFrameIndex -= 1
     if direction == "left" then
         -- for x you take the inverse of x, -x; add the length of the sprite table, 64; and then subtract the width of the collision rect.
@@ -204,9 +213,6 @@ function Boss:handleFollowInput()
         test if the you're trying to get to the location on the left or right side
         then try to get to that location]]
 
-    self.attackLocation = math.random(65 + self.followRangeValue[1], 65 + self.followRangeValue[2])
-    print8 = self.attackLocation
-
     if math.abs(self.distanceToPlayerX) >= 0 and math.abs(self.distanceToPlayerX) < 65 then
         local function randomDirection()
             local direction = {"left", "right"}
@@ -230,7 +236,7 @@ function Boss:handleFollowInput()
                 randomDirection()
             end
         end
-    elseif math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed then
+    elseif math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed/2 and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed/2 then
         self:changeToNextAttack(self.nextAttack)
     else
         if math.abs(self.attackLocation - self.distanceToPlayerX) <= math.abs(-self.attackLocation - self.distanceToPlayerX) then
@@ -256,6 +262,7 @@ end
 function Boss:handleDashInput()
     if math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed then
         self:changeToNextAttack(self.nextAttack)
+        self.dashTimer:remove() -- timer doesn't remove otherwise and you can "dash lock" the boss if you walk towards the boss while it's in an attack state
     elseif self.globalFlip == 1 then -- left
         self.realX -= self.moveSpeed * 3
     elseif self.globalFlip == 0 then -- right
@@ -272,8 +279,6 @@ function Boss:handleSlashInput()
         self.realX += self.attackSpeedTable[self._currentFrame - 10]
         self:updateAttackCollideRect(11, "right")
     end
-
-    self.states.slash.onFrameChangedEvent = function (self) print(self._currentFrame - 10) end
 end
 
 -- state transition functions
@@ -338,6 +343,7 @@ function Boss:changeToFollowState()
     end
 
     self.nextAttack = attackTable[rng]
+    self.attackLocation = math.random(65 + self.followRangeValue[1], 65 + self.followRangeValue[2])
     self:changeState("follow")
 end
 
@@ -349,7 +355,7 @@ function Boss:changeToDashState(direction, duration)
     elseif direction == "right" then
         self.globalFlip = 0
     end
-    pd.timer.performAfterDelay(duration, function ()
+    self.dashTimer = pd.timer.performAfterDelay(duration, function ()
         self:changeToFollowState()
     end)
     self:changeState("dash")
@@ -409,4 +415,49 @@ function Boss:changeToNextAttack(attack)
     end
 
     --print(attack)
+end
+
+-- Physics Helper Functions
+
+function Boss:applyGravity(multiplier)
+    if multiplier == nil then multiplier = 1 end
+
+    if self.y < ground then
+        if self.y + ((self.yAcceleration * GSM) * multiplier) > ground then
+            --prevents player from falling below ground
+            self:moveBy(0, ground - self.y)
+            --resets player gravity because player is now on ground
+            self.yAcceleration = 1
+            self.isJumping = false
+            self.usedSpike = false
+            self:changeToIdleState()
+        elseif GSM == 0 then
+            -- this little bit prevents the player from being stuck flying if they somehow get their y acceleration to be 0
+            self.yAcceleration = self.storedYAcceleration
+        else
+            -- active gravity function
+            self:moveBy(0, ((self.yAcceleration * GSM) * multiplier))
+            if self.yAcceleration * (1 + ((.12 * GSM) * multiplier)) < ((self.maxFallSpeed * GSM) * multiplier) then
+                -- how fast gravity increases. Higher number = more gravity
+                self.yAcceleration *= 1 + ((.12 * GSM) * multiplier)
+            else
+                self.yAcceleration = ((self.maxFallSpeed * GSM) * multiplier) -- max player fall speed
+            end
+        end
+    end
+end
+
+-- Collision Functions
+
+function Boss:handleCollisions()
+    local actualX, actualY, collisions, length = self:checkCollisions(self.x, self.y)
+    if length > 0 then
+        for index, collision in pairs(collisions) do
+            local collidedObject = collision['other']
+            if collidedObject:isa(Slash) then
+                print("I TOOK DAMAGE OWWWW AHHHHHHHHHHHH")
+                setShakeAmount(2)
+            end
+        end
+    end
 end
