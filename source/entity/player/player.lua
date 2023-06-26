@@ -93,16 +93,17 @@ function Player:init(x, y)
     self:setStates(self.animationStates, true, "idle")
 
     -- Player Base Stats
+    self.HP = 10
     self.moveSpeed = 4
     self.jumpSpeed = 5
     self.yAcceleration = 1
     self.maxFallSpeed = 75
+    self.isInvincible = false
     self.holdJump = false
     self.isJumping = false
     self.usedSpike = false
     self.groundSlashDuration = 200
     self.airSlashDuration = 300
-    self.driftSpeed = self.moveSpeed
     spikeAngle = 0
     self.spikeDistance = 75
     self.minSpikeXDistance = self.moveSpeed
@@ -165,11 +166,17 @@ function Player:updateExternalVariables()
     realPlayerX = self.x
 
     print1 = currentFrame
-    print5 = self.currentState
 end
 
 function Player:updateStates()
     self:setStates(self.animationStates, true)
+end
+
+function Player:setInvincibleTrue(duration)
+    self.isInvincible = true
+    pd.timer.performAfterDelay(duration, function ()
+        self.isInvincible = false
+    end)
 end
 
 -- main player controler
@@ -285,11 +292,21 @@ function Player:handleAirInput()
 end
 
 function Player:handleSlashInput()
-    self.driftSpeed = self.moveSpeed * 1.25 -- player moves slightly faster durring a drift.
+    -- faster moving in the direction of the slash
+    -- slower moving away from the direction of the slash
+
     if self.globalFlip == 1 then -- left
-        playerX -= (self.driftSpeed * GSM)
+        if pd.buttonIsPressed(pd.kButtonLeft) then
+            playerX -= (self.moveSpeed * 1.15) * GSM
+        elseif pd.buttonIsPressed(pd.kButtonRight) then
+            playerX += (self.moveSpeed * .75) * GSM
+        end
     elseif self.globalFlip == 0 then -- right
-        playerX += (self.driftSpeed * GSM)
+        if pd.buttonIsPressed(pd.kButtonLeft) then
+            playerX -= (self.moveSpeed * .75) * GSM
+        elseif pd.buttonIsPressed(pd.kButtonRight) then
+            playerX += (self.moveSpeed * 1.15) * GSM
+        end
     end
 end
 
@@ -444,7 +461,6 @@ function Player:changeToSlashState()
 
     pd.timer.performAfterDelay(self.groundSlashDuration * (1/GSM), function ()
         self:changeToIdleState()
-        self.driftSpeed = self.moveSpeed
     end)
 end
 
@@ -527,10 +543,33 @@ function Player:handleCollisions()
         for index, collision in pairs(collisions) do
             local collidedObject = collision['other']
             if collidedObject:isa(Boss) then
-                if not (self.currentState == "dash" or self.currentState == "dashJump" or self.currentState == "dashFall") then
-                    setShakeAmount(5)
-                elseif self.currentState == "aimSpike" then
-                    self:changeToFallState()
+                if self.isInvincible == false then
+                    if not (self.currentState == "dash" or self.currentState == "dashJump" or self.currentState == "dashFall") then
+                        if bossState == "slash" then
+                            self.HP -= 1
+                            self:setInvincibleTrue(750)
+                        elseif bossState == "stompShock" then
+                            self.HP -= .25
+                            self:setInvincibleTrue(200)
+                        else
+                            self.HP -= .5
+                            self:setInvincibleTrue(800)
+                        end
+                        setShakeAmount(5)
+                        print("player HP : " .. self.HP)
+                    elseif self.currentState == "aimSpike" then
+                        self:changeToFallState()
+                        if bossState == "slash" then
+                            self.HP -= 1.5
+                        elseif bossState == "stompShock" then
+                            self.HP -= .5
+                        else
+                            self.HP -= .75
+                        end
+                        self:setInvincibleTrue(800)
+                        setShakeAmount(7)
+                        print("player HP : " .. self.HP)
+                    end
                 end
             end
         end

@@ -19,7 +19,7 @@ function Boss:init(x, y)
         smokeBomb = 1,
         flury = 1,
         shuriken = 1,
-        stompShock = 1
+        stompShock = 4
     }
 
     -- need to set up buildup for all of these attacks.
@@ -88,13 +88,16 @@ function Boss:init(x, y)
         },
         {
             name = "stompShock",
-            firstFrameIndex = 4,
-            framesCount = 1,
+            firstFrameIndex = 21,
+            framesCount = 10,
             tickStep = self.tickStepTable.stompShock,
+            nextAnimation = "idle"
         },
     }, true, "idle")
 
     self.currentStage = 0
+    self.HP = 30
+    self.isInvincible = false
 
     self.realX = x
     self.distanceToPlayerX = self.realX - playerX
@@ -119,6 +122,11 @@ function Boss:establishAnimationEndEvents()
         self:changeToIdleState(500)
         self:resetCollideRect()
     end
+
+    self.states["stompShock"].onAnimationEndEvent = function ()
+        self:changeToIdleState(1250)
+        self:resetCollideRect()
+    end
 end
 
 function Boss:update()
@@ -130,7 +138,7 @@ function Boss:update()
         self:updateAnimation()
     end
 
-    self.doBoss = false
+    self.doBoss = true
 
     if self.doBoss then
         self:handleState()
@@ -138,7 +146,9 @@ function Boss:update()
         self:changeState("idle")
     end
 
-    print3 = self.distanceToPlayerX
+    bossState = self.currentState
+
+    print3 = self.currentState
 end
 
 function Boss:handleState()
@@ -156,6 +166,7 @@ function Boss:handleState()
     elseif self.currentState == "flury" then -- long rest
     elseif self.currentState == "shuriken" then -- short rest
     elseif self.currentState == "stompShock" then -- long rest
+        self:handleStompShockInput()
     end
 end
 
@@ -166,6 +177,19 @@ function Boss:updateLocation()
     if (self.distanceToPlayerX >= -240) and (self.distanceToPlayerX <= 240) then
         self:moveTo(self.distanceToPlayerX + 200, self.y)
     end
+end
+
+function Boss:setInvincibleTrue(duration)
+    -- to avoid the bug where GSM can make this timer really long
+    local fakeGSM = 1
+    if GSM < .5 then
+        fakeGSM = 1.5
+    end
+
+    self.isInvincible = true
+    pd.timer.performAfterDelay(duration * fakeGSM, function ()
+        self.isInvincible = false
+    end)
 end
 
     -- updates boss orientation to left or right depending on distance to the player
@@ -183,7 +207,6 @@ end
 
 function Boss:updateAttackCollideRect(firstFrameIndex, direction)
     -- https://www.desmos.com/calculator/pv9vj8xurp -- graph showing how this all works (kinda?)
-    firstFrameIndex -= 1
     if direction == "left" then
         -- for x you take the inverse of x, -x; add the length of the sprite table, 64; and then subtract the width of the collision rect.
         self:setCollideRect(((-self.attackRectTable[self._currentFrame - firstFrameIndex][1] + 64) - self.attackRectTable[self._currentFrame - firstFrameIndex][3]), self.attackRectTable[self._currentFrame - firstFrameIndex][2], self.attackRectTable[self._currentFrame - firstFrameIndex][3], self.attackRectTable[self._currentFrame - firstFrameIndex][4])
@@ -241,18 +264,18 @@ function Boss:handleFollowInput()
     else
         if math.abs(self.attackLocation - self.distanceToPlayerX) <= math.abs(-self.attackLocation - self.distanceToPlayerX) then
             if self.distanceToPlayerX < self.attackLocation then
-                self.realX += self.moveSpeed * .9
+                self.realX += (self.moveSpeed * .9) * GSM
                 self.globalFlip = 0
             elseif self.distanceToPlayerX > self.attackLocation then
-                self.realX -= self.moveSpeed
+                self.realX -= self.moveSpeed * GSM
                 self.globalFlip = 1
             end
         else
             if self.distanceToPlayerX < -self.attackLocation then
-                self.realX += self.moveSpeed
+                self.realX += self.moveSpeed * GSM
                 self.globalFlip = 0
             elseif self.distanceToPlayerX > -self.attackLocation then
-                self.realX -= self.moveSpeed * .9
+                self.realX -= (self.moveSpeed * .9) * GSM
                 self.globalFlip = 1
             end
         end
@@ -264,20 +287,30 @@ function Boss:handleDashInput()
         self:changeToNextAttack(self.nextAttack)
         self.dashTimer:remove() -- timer doesn't remove otherwise and you can "dash lock" the boss if you walk towards the boss while it's in an attack state
     elseif self.globalFlip == 1 then -- left
-        self.realX -= self.moveSpeed * 3
+        self.realX -= (self.moveSpeed * 3) * GSM
     elseif self.globalFlip == 0 then -- right
-        self.realX += self.moveSpeed * 3
+        self.realX += (self.moveSpeed * 3) * GSM
     end
 end
 
 function Boss:handleSlashInput()
     -- turns the current selected frame into a number starting at 1, then uses that to move the correct amount of speed depending on the current animation frame.
     if self.globalFlip == 1 then -- left
-        self.realX -= self.attackSpeedTable[self._currentFrame - 10]
-        self:updateAttackCollideRect(11, "left")
+        self.realX -= (self.attackSpeedTable[self._currentFrame - 10]) * GSM
+        self:updateAttackCollideRect(10, "left")
     elseif self.globalFlip == 0 then -- right
-        self.realX += self.attackSpeedTable[self._currentFrame - 10]
-        self:updateAttackCollideRect(11, "right")
+        self.realX += (self.attackSpeedTable[self._currentFrame - 10]) * GSM
+        self:updateAttackCollideRect(10, "right")
+    end
+end
+
+function Boss:handleStompShockInput()
+    if self.globalFlip == 1 then -- left
+        self.realX -= (self.attackSpeedTable[self._currentFrame - 20]) * GSM
+        self:updateAttackCollideRect(20, "left")
+    elseif self.globalFlip == 0 then -- right
+        self.realX += (self.attackSpeedTable[self._currentFrame - 20]) * GSM
+        self:updateAttackCollideRect(20, "right")
     end
 end
 
@@ -291,7 +324,13 @@ end
 function Boss:changeToIdleState(time)
     self:changeState("idle")
 
-    pd.timer.performAfterDelay(time, function ()
+    -- to avoid the bug where GSM can make this timer really long
+    local fakeGSM = 1
+    if GSM < .5 then
+        fakeGSM = 1.5
+    end
+
+    pd.timer.performAfterDelay((time * fakeGSM), function ()
         self:changeToFollowState()
     end)
 end
@@ -300,6 +339,7 @@ function Boss:changeToFollowState()
     local attackTable = nil
     if self.currentStage == 0 then -- for testing purposes 
         attackTable = {
+            "stompShock",
             "slash"
         }
     elseif self.currentStage == 1 then
@@ -355,7 +395,14 @@ function Boss:changeToDashState(direction, duration)
     elseif direction == "right" then
         self.globalFlip = 0
     end
-    self.dashTimer = pd.timer.performAfterDelay(duration, function ()
+
+    -- to avoid the bug where GSM can make this timer really long
+    local fakeGSM = 1
+    if GSM < .5 then
+        fakeGSM = 1.5
+    end
+
+    self.dashTimer = pd.timer.performAfterDelay((duration * fakeGSM), function ()
         self:changeToFollowState()
     end)
     self:changeState("dash")
@@ -369,12 +416,6 @@ function Boss:changeToShurikenState()
         --Shuriken(self.x, "left")
         print("threw a shuriken to the left")
     end
-
-    -- this timer should be set to the amount of frames the shuriken throwing animation frames there are times 1000/40 (1s/fps) then multiplied by the GSM
-    pd.timer.performAfterDelay(500, function ()
-        -- longer idle time bcs boss is farther away from player
-        self:changeToIdleState(3000)
-    end)
 end
 
 function Boss:changeToSlashState()
@@ -396,6 +437,27 @@ function Boss:changeToSlashState()
     self:changeState("slash")
 end
 
+function Boss:changeToStompShock()
+    self:updateOrientation()
+    self.attackSpeedTable = {
+        2.5, 3, 3, 4, 2, 3, 5, 5, 2, 1
+    }
+    self.attackRectTable = {
+        {26, 24, 18, 23},
+        {26, 23, 19, 24},
+        {26, 22, 19, 25},
+        {25, 20, 17, 27},
+        {24, 22, 20, 25},
+        {22, 29, 26, 18},
+        {22, 26, 38, 21},
+        {24, 27, 35, 20},
+        {21, 25, 18, 22},
+        {25, 24, 18, 23},
+    }
+
+    self:changeState("stompShock")
+end
+
 function Boss:changeToNextAttack(attack)
     if attack == "slash" then -- DONE
         self:changeToSlashState()
@@ -406,7 +468,7 @@ function Boss:changeToNextAttack(attack)
     elseif attack == "spinSlash" then
         self:changeToIdleState(1000)
     elseif attack == "stompShock" then
-        self:changeToIdleState(1000)
+        self:changeToStompShock()
     elseif attack == "smokeBomb" then
         self:changeToIdleState(1000)
     elseif attack == "shuriken" then
@@ -454,9 +516,13 @@ function Boss:handleCollisions()
     if length > 0 then
         for index, collision in pairs(collisions) do
             local collidedObject = collision['other']
-            if collidedObject:isa(Slash) then
-                print("I TOOK DAMAGE OWWWW AHHHHHHHHHHHH")
-                setShakeAmount(2)
+            if self.isInvincible == false then
+                if collidedObject:isa(Slash) then
+                    self.HP -= 1
+                    self:setInvincibleTrue(350)
+                    print("boss HP : " .. self.HP)
+                    setShakeAmount(5)
+                end
             end
         end
     end

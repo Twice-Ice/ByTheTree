@@ -42,6 +42,7 @@ updateStates = false -- tells sprites to update their states and ticksteps.
 
 -- player related variables
 playerX = 0
+bossState = nil
 ground = 204
 totalDistanceTraveled = 0
 distanceTraveled = 0
@@ -118,7 +119,7 @@ local function startGame()
 	print10 = "  "
 
 	Player(200, 204)
-	Boss(100, 204)
+	Boss(200, 204)
 	for i = 0, 11 do
 		local distance = 10
 		Ground(0 + (i * 40), 230, 1, ZIndexTable.Ground, 0 + i)
@@ -141,8 +142,8 @@ function playdate.update()
 		currentFrame = 1
 	end
 
-	print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
-	
+	--print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
+
 	GSM = gameSpeed/defaultGameSpeed
 	--print(gameSpeed .. "/" .. fps .. " = GSM; " .. GSM )
 	pd.drawFPS(0,0) -- FPS widget
