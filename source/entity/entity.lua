@@ -53,15 +53,14 @@ end
 
 -- set your value,
 -- if value = nil then GSM will be set to default
-function Entity:setGSM(value)
+function Entity:setGSM(value, table)
     if value == nil then value = defaultGameSpeed end
     gameSpeed = value
-    self:resetTickStep()
-    self:updateTickStep()
+    return self:updateTickStep(table)
 end
 
 -- sets tickstep values to default values
-function Entity:resetTickStep()
+function Entity:resetTickStep(table)
     for i = 1, #self.defaultTickStepTable do
         self.tickStepTable[i] = self.defaultTickStepTable[i]
     end
@@ -69,7 +68,7 @@ end
 
 -- sets tickstep values high enough to simulate a pause,
 -- couldn't figure out animatedsprite's pause function.
-function Entity:stopTickStep()
+function Entity:stopTickStep(table)
     for i = 1, #self.tickStepTable do
         self.tickStepTable[i] = 10000
     end
@@ -77,7 +76,7 @@ function Entity:stopTickStep()
 end
 
 -- sets tickstep values in accordance to GSM
-function Entity:updateTickStep()
+function Entity:updateTickStep(table)
     local currentTimeGSM = gameSpeed/fps
     --[[lua is being finnicky and it seems that
     the real GSM updates after all of these calculations are done
@@ -85,11 +84,12 @@ function Entity:updateTickStep()
 
     local inverseGSM = 1/currentTimeGSM
     if currentTimeGSM > 0 then
-        self:resetTickStep()
-        for i = 1, #self.tickStepTable do
-            self.tickStepTable[i] *= inverseGSM
-            self.tickStepTable[i] = math.ceil(self.tickStepTable[i])
+        --self:resetTickStep()
+        for i = 1, #table do
+            table[i] *= inverseGSM
+            table[i] = math.ceil(table[i])
         end
     end
     self:updateStates()
+    return table
 end

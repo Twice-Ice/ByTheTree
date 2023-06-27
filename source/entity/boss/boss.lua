@@ -12,7 +12,7 @@ function Boss:init(x, y)
         idle = 10,
         dash = 1,
         follow = 4,
-        slash = 4,
+        slash = 5,
         jumpSlash = 1,
         spinSlash = 1,
         teleport = 1,
@@ -119,12 +119,12 @@ end
 
 function Boss:establishAnimationEndEvents()
     self.states["slash"].onAnimationEndEvent = function ()
-        self:changeToIdleState(500)
+        self:changeToIdleState(250)
         self:resetCollideRect()
     end
 
     self.states["stompShock"].onAnimationEndEvent = function ()
-        self:changeToIdleState(1250)
+        self:changeToIdleState(625)
         self:resetCollideRect()
     end
 end
@@ -134,9 +134,7 @@ function Boss:update()
 
     self:updateLocation()
 
-    if (self.distanceToPlayerX >= -240) and (self.distanceToPlayerX <= 240) then
-        self:updateAnimation()
-    end
+    self:updateAnimation()
 
     self.doBoss = true
 
@@ -147,8 +145,6 @@ function Boss:update()
     end
 
     bossState = self.currentState
-
-    print3 = self.currentState
 end
 
 function Boss:handleState()
@@ -187,7 +183,7 @@ function Boss:setInvincibleTrue(duration)
     end
 
     self.isInvincible = true
-    pd.timer.performAfterDelay(duration * fakeGSM, function ()
+    pd.timer.performAfterDelay((duration * fakeGSM), function ()
         self.isInvincible = false
     end)
 end
@@ -242,7 +238,7 @@ function Boss:handleFollowInput()
             self:changeToDashState(direction[math.random(1, 2)])
         end
 
-        if playerState == "dash" then
+        if playerState == "dash" or playerState == "dashJump" then
             if self.distanceToPlayerX < 0 then
                 self:changeToDashState("right", 250)
             elseif self.distanceToPlayerX > 0 then
@@ -283,7 +279,7 @@ function Boss:handleFollowInput()
 end
 
 function Boss:handleDashInput()
-    if math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed then
+    if math.abs(self.distanceToPlayerX) >= self.attackLocation - ((self.moveSpeed * 3) * GSM) and math.abs(self.distanceToPlayerX) <= self.attackLocation + ((self.moveSpeed * 3) * GSM) then
         self:changeToNextAttack(self.nextAttack)
         self.dashTimer:remove() -- timer doesn't remove otherwise and you can "dash lock" the boss if you walk towards the boss while it's in an attack state
     elseif self.globalFlip == 1 then -- left
@@ -370,7 +366,9 @@ function Boss:changeToFollowState()
 
     local rng = math.random(1, #attackTable)
 
-    if attackTable[rng] == "slash" or attackTable[rng] == "flury" then
+    if attackTable[rng] == "slash" then
+        self.followRangeValue = {5, 20}
+    elseif attackTable[rng] == "flury" then
         self.followRangeValue = {0, 10}
     elseif attackTable[rng] == "jumpSlash" or attackTable[rng] == "stompShock" then
         self.followRangeValue = {10, 20}

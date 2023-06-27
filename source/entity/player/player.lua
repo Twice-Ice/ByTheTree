@@ -69,12 +69,6 @@ function Player:init(x, y)
             tickStep = self.tickStepTable.dashJump
         },
         {
-            name = "dashFall",
-            firstFrameIndex = 13,
-            framesCount = 1,
-            tickStep = self.tickStepTable.dashJump
-        },
-        {
             name = "aimSpike", -- this is where the player is mid air, time slows and the crank is used
             firstFrameIndex = 14, -- this needs to be like an inbetween for the jump and fall animations. 
             framesCount = 1,
@@ -99,6 +93,8 @@ function Player:init(x, y)
     self.yAcceleration = 1
     self.maxFallSpeed = 75
     self.isInvincible = false
+    self.dashDirection = nil
+    self.canDash = true
     self.holdJump = false
     self.isJumping = false
     self.usedSpike = false
@@ -130,7 +126,7 @@ function Player:init(x, y)
     }
 
     self:setCollideRect(13, 12, 22, 28)
-    self:setGSM()
+    self:setGSM(_, self.tickStepTable)
 end
 
 
@@ -155,6 +151,11 @@ function Player:update()
 
         self:handleCollisions()
 
+        local ticks = pd.getCrankTicks(360)
+        if ticks ~= 0 then
+            print(ticks)
+        end
+
     distTraveled = pastX - playerX
     totalDistanceTraveled += math.sqrt(distTraveled^2) -- this could be bad for performance but idk
 end
@@ -164,6 +165,7 @@ end
 function Player:updateExternalVariables()
     realPlayerY = self.y
     realPlayerX = self.x
+    playerState = self.currentState
 
     print1 = currentFrame
 end
@@ -260,10 +262,11 @@ end
 --      Input Helper Functions
 
 function Player:handleGroundInput()
-    if pd.buttonJustPressed(pd.kButtonUp) then
+    local crankTicks = pd.getCrankTicks(360)
+    if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToJumpState()
-    elseif pd.buttonJustPressed(pd.kButtonA) then
-        self:changeToDashState()
+    elseif crankTicks ~= 0 and self.canDash then
+        self:changeToDashState(crankTicks)
     elseif pd.buttonJustPressed(pd.kButtonB) then
         self:changeToSlashState() 
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
@@ -319,47 +322,49 @@ function Player:handleAirSlashInput()
 end
 
 function Player:handleDashInput()
-    if self.globalFlip == 1 then -- left
+    if self.dashDirection == "left" then
         playerX -= (self.moveSpeed * GSM) * 2.25
-    elseif self.globalFlip == 0 then -- right
+    elseif self.dashDirection == "right" then
         playerX += (self.moveSpeed * GSM) * 2.25
     end
 
     -- makes dash longer if the direction is held.
     -- these timers continue after your state is changed.
     pd.timer.performAfterDelay(200 * (1/GSM), function ()
-        if pd.buttonIsPressed(pd.kButtonLeft) or pd.buttonIsPressed(pd.kButtonRight) then
+        if pd.getCrankTicks(360) ~= 0 then
             pd.timer.performAfterDelay(100 * (1/GSM), function ()
                 if self.currentState == "dash" then
-                self:changeToIdleState()
+                    self:changeToIdleState()
                 elseif self.currentState == "dashJump" then
                     self:changeToJumpState()
-                elseif self.currentState == "dashFall" then
-                    self:changeToFallState()
                 end
+                pd.timer.performAfterDelay(500, function ()
+                    self.canDash = true
+                end)
             end)
         else
             if self.currentState == "dash" then
                 self:changeToIdleState()
             elseif self.currentState == "dashJump" then
                 self:changeToJumpState()
-            elseif self.currentState == "dashFall" then
-                self:changeToFallState()
             end
+            pd.timer.performAfterDelay(500, function ()
+                self.canDash = true
+            end)
         end
     end)
 
     -- you can jump while mid dash.
-    if pd.buttonJustPressed(pd.kButtonUp) then
+    if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToDashJumpState()
     end
 end
 
 function Player:handleDashJumpInput()
     -- dash jumps are slightly slower than normal dashes.
-    if self.globalFlip == 1 then -- left
+    if self.dashDirection == "left" then
         playerX -= (self.moveSpeed * GSM) * 2
-    elseif self.globalFlip == 0 then -- right
+    elseif self.dashDirection == "right" then
         playerX += (self.moveSpeed * GSM) * 2
     end
 
@@ -368,15 +373,19 @@ function Player:handleDashJumpInput()
         if self.y < ground - 20 then
             self:changeToAirSlashState()
         end
+    elseif pd.buttonJustPressed(pd.kButtonA) and self.y < ground - 20 then
+        if self.usedSpike == false then
+            self:changeToAimSpikeState()
+        end
     end
 end
 
 function Player:handleAimSpikeInput()
     if pd.buttonJustPressed(pd.kButtonA) then
-        self:setGSM()
+        self:setGSM(_, self.tickStepTable)
         self:changeToSpikeState()
     elseif self.y > ground - 20 then
-        self:setGSM()
+        self:setGSM(_, self.tickStepTable)
         self:changeToJumpState()
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
         playerX -= (self.moveSpeed * GSM)
@@ -405,7 +414,7 @@ function Player:handleSpikeInput()
     -- absolute value is so that if the numbers are negative (or not) then they are always consistent regardless of their original value (pos/neg)
     if not ((self.spikeX > math.abs(self.minSpikeXDistance) or self.spikeX < -math.abs(self.minSpikeXDistance)) or (self.spikeY > math.abs(self.minSpikeYDistance) or self.spikeY < -math.abs(self.minSpikeYDistance))) then
         self:changeToJumpState()
-        self:setGSM()
+        self:setGSM(_, self.tickStepTable)
         self.spikeX = 0
         self.spikeY = 0
     end
@@ -420,9 +429,9 @@ end
 
 function Player:changeToJumpState()
     pd.timer.performAfterDelay(200, function ()
-        if pd.buttonIsPressed(pd.kButtonUp) and self.currentState == "jump" then
+        if pd.buttonIsPressed(pd.kButtonA) and self.currentState == "jump" then
             self.jumpSpeed = 7
-        elseif (not pd.buttonIsPressed(pd.kButtonUp)) and self.currentState == "jump" then
+        elseif (not pd.buttonIsPressed(pd.kButtonA)) and self.currentState == "jump" then
             self.jumpSpeed = 5
         end
     end)
@@ -475,7 +484,16 @@ function Player:changeToAirSlashState()
     end
 end
 
-function Player:changeToDashState()
+function Player:changeToDashState(crankTicks)
+    if crankTicks > 0 then
+        self.dashDirection = "right"
+        self.globalFlip = 0
+    elseif crankTicks < 0 then
+        self.dashDirection = "left"
+        self.globalFlip = 1
+    end
+    self.canDash = false
+
     self:changeState("dash")
     self.currentStateNumber = 7
 end
@@ -488,7 +506,7 @@ end
 
 function Player:changeToAimSpikeState()
     Spike(self)
-    self:setGSM(5)
+    self:setGSM(5, self.tickStepTable)
     self:changeState("aimSpike")
     self.currentStateNumber = 10
 end
