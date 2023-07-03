@@ -12,7 +12,7 @@ function Boss:init(x, y)
         idle = 10,
         dash = 1,
         follow = 4,
-        slash = 5,
+        slash = 4,
         jumpSlash = 1,
         spinSlash = 1,
         teleport = 1,

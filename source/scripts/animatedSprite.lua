@@ -464,7 +464,7 @@ function AnimatedSprite:updateAnimation()
 			end
 			processAnimation(self)
 			drawFrame(self)
-			self._previousTicks += state.tickStep
+			self._previousTicks += state.tickStep * 1/GSM
 		end
 	end
 end

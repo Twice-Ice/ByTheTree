@@ -126,7 +126,7 @@ function Player:init(x, y)
     }
 
     self:setCollideRect(13, 12, 22, 28)
-    self:setGSM(_, self.tickStepTable)
+    --self:setGSM()
 end
 
 
@@ -151,7 +151,7 @@ function Player:update()
 
         self:handleCollisions()
 
-        local ticks = pd.getCrankTicks(360)
+        local ticks = pd.getCrankTicks(20)
         if ticks ~= 0 then
             print(ticks)
         end
@@ -168,10 +168,6 @@ function Player:updateExternalVariables()
     playerState = self.currentState
 
     print1 = currentFrame
-end
-
-function Player:updateStates()
-    self:setStates(self.animationStates, true)
 end
 
 function Player:setInvincibleTrue(duration)
@@ -262,7 +258,7 @@ end
 --      Input Helper Functions
 
 function Player:handleGroundInput()
-    local crankTicks = pd.getCrankTicks(360)
+    local crankTicks = pd.getCrankTicks(10)
     if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToJumpState()
     elseif crankTicks ~= 0 and self.canDash then
@@ -323,16 +319,16 @@ end
 
 function Player:handleDashInput()
     if self.dashDirection == "left" then
-        playerX -= (self.moveSpeed * GSM) * 2.25
+        playerX -= (self.moveSpeed * 2.25) * GSM
     elseif self.dashDirection == "right" then
-        playerX += (self.moveSpeed * GSM) * 2.25
+        playerX += (self.moveSpeed * 2.25) * GSM
     end
 
     -- makes dash longer if the direction is held.
     -- these timers continue after your state is changed.
     pd.timer.performAfterDelay(200 * (1/GSM), function ()
-        if pd.getCrankTicks(360) ~= 0 then
-            pd.timer.performAfterDelay(100 * (1/GSM), function ()
+        if pd.getCrankTicks(10) ~= 0 then
+            pd.timer.performAfterDelay(150 * (1/GSM), function ()
                 if self.currentState == "dash" then
                     self:changeToIdleState()
                 elseif self.currentState == "dashJump" then
@@ -506,14 +502,14 @@ end
 
 function Player:changeToAimSpikeState()
     Spike(self)
-    self:setGSM(5, self.tickStepTable)
+    self:setGSM(10, self.tickStepTable)
     self:changeState("aimSpike")
     self.currentStateNumber = 10
 end
 
 function Player:changeToSpikeState()
     self.usedSpike = true
-    self.spikeDistance = 10
+    self.spikeDistance = 12.5
     self.spikeX = math.cos(spikeAngle/(180/math.pi))
     self.spikeY = math.sin(spikeAngle/(180/math.pi))
     self.minSpikeXDistance = (2 / self.spikeX) * GSM

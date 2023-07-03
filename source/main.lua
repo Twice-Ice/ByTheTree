@@ -30,11 +30,9 @@ currentFrame = 1
 pd.display.setRefreshRate(40)
 
 -- game speed variables
-defaultGameSpeed = 40
+defaultGameSpeed = fps -- if defaultGameSpeed = fps then GSM = 1
 gameSpeed = defaultGameSpeed
 GSM = gameSpeed/fps
-inputsForGSM = false -- manually set, cannot be changed in game.
-updateStates = false -- tells sprites to update their states and ticksteps.
 --GSM; Game Speed Multiplier
 -- higher gameSpeed means higher movement/calculations value. *everything related to movement  SHOULD be multiplied by the GSM*
 
@@ -144,7 +142,7 @@ function playdate.update()
 
 	--print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
 
-	GSM = gameSpeed/defaultGameSpeed
+	GSM = gameSpeed/fps
 	--print(gameSpeed .. "/" .. fps .. " = GSM; " .. GSM )
 	pd.drawFPS(0,0) -- FPS widget
 	gfx.sprite.update()
