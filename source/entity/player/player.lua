@@ -142,11 +142,6 @@ function Player:update()
             self:handleState()
         end
 
-        if updateStates then
-            self:updateStates()
-            updateStates = false
-        end
-
         self:updateExternalVariables()
 
         self:handleCollisions()
@@ -559,29 +554,28 @@ function Player:handleCollisions()
             if collidedObject:isa(Boss) then
                 if self.isInvincible == false then
                     if not (self.currentState == "dash" or self.currentState == "dashJump" or self.currentState == "dashFall") then
+                        local damage = nil
+                        local invincibleTime = 800
                         if bossState == "slash" then
-                            self.HP -= 1
-                            self:setInvincibleTrue(750)
+                            damage = 1
+                            invincibleTime = 750
                         elseif bossState == "stompShock" then
-                            self.HP -= .25
-                            self:setInvincibleTrue(200)
+                            damage = .25
+                            invincibleTime = 200
                         else
-                            self.HP -= .5
+                            damage = .5
+                        end
+
+                        if self.currentState == "aimSpike" then
+                            self.HP -= damage * 1.5
                             self:setInvincibleTrue(800)
-                        end
-                        setShakeAmount(5)
-                        print("player HP : " .. self.HP)
-                    elseif self.currentState == "aimSpike" then
-                        self:changeToFallState()
-                        if bossState == "slash" then
-                            self.HP -= 1.5
-                        elseif bossState == "stompShock" then
-                            self.HP -= .5
+                            setShakeAmount(7)
                         else
-                            self.HP -= .75
+                            self.HP -= damage
+                            self:setInvincibleTrue(invincibleTime)
+                            setShakeAmount(5)
                         end
-                        self:setInvincibleTrue(800)
-                        setShakeAmount(7)
+
                         print("player HP : " .. self.HP)
                     end
                 end
