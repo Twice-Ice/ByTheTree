@@ -255,7 +255,7 @@ function Boss:handleFollowInput()
                 randomDirection()
             end
         end
-    elseif math.abs(self.distanceToPlayerX) >= self.attackLocation - self.moveSpeed/2 and math.abs(self.distanceToPlayerX) <= self.attackLocation + self.moveSpeed/2 then
+    elseif self.distanceToPlayerX <= self.attackLocation then
         self:changeToNextAttack(self.nextAttack)
     else
         if math.abs(self.attackLocation - self.distanceToPlayerX) <= math.abs(-self.attackLocation - self.distanceToPlayerX) then
