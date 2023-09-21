@@ -46,11 +46,11 @@ totalDistanceTraveled = 0
 distanceTraveled = 0
 --Z Index table
 ZIndexTable = {
+	Spike = 80,
+	Ground = 70,
 	Boss = 60,
-	Spike = 51,
 	Player = 50,
 	Slashes = 49,
-	Ground = 70,
 	Mountains = 10,
 }
 

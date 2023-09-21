@@ -63,7 +63,7 @@ end
 
 function Spike:handleSpikeAimInput()
     -- the -90 is to account for the up and down of the crank being different from the numerical up and down
-    self.angle = pd.getCrankPosition() - 90
+    self.angle = (pd.getCrankPosition() - 90)
 
     self.spikeXCoordinate = math.ceil(self.distance * math.cos(self.angle/(180/math.pi)))
     self.spikeYCoordinate = math.ceil(self.distance * math.sin(self.angle/(180/math.pi)))
@@ -74,6 +74,8 @@ function Spike:handleSpikeAimInput()
     end
 
     self:moveTo(realPlayerX + self.spikeXCoordinate, realPlayerY + self.spikeYCoordinate)
+
+    self:setRotation(self.angle)
 end
 
 function Spike:handleSpikeInput()

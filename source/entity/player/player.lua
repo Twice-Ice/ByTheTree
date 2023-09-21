@@ -172,6 +172,12 @@ function Player:setInvincibleTrue(duration)
     end)
 end
 
+function Player:resetRotation()
+    if self:getRotation() ~= 0 then
+        self:setRotation(0)
+    end
+end
+
 -- main player controler
 function Player:handleState()
     return(self.stateFunctionTable[self.currentStateNumber](self))
@@ -253,13 +259,13 @@ end
 --      Input Helper Functions
 
 function Player:handleGroundInput()
-    local crankTicks = pd.getCrankTicks(10)
-    if pd.buttonJustPressed(pd.kButtonUp) then
+    self:resetRotation()
+    if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToJumpState()
-    elseif pd.buttonJustPressed(pd.kButtonA) then
-        self:changeToDashState(crankTicks)
     elseif pd.buttonJustPressed(pd.kButtonB) then
-        self:changeToSlashState() 
+        self:changeToDashState()
+    --elseif pd.buttonJustPressed() then
+    --    self:changeToSlashState() 
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
         self:changeToRunState("left")
     elseif pd.buttonIsPressed(pd.kButtonRight) then
@@ -270,7 +276,8 @@ function Player:handleGroundInput()
 end
 
 function Player:handleAirInput()
-    if pd.buttonJustPressed(pd.kButtonUp) and self.y < ground - 20 then
+    self:resetRotation()
+    if pd.buttonJustPressed(pd.kButtonA) and self.y < ground - 20 then
         if self.usedSpike == false then
             self:changeToAimSpikeState()
         end
@@ -322,7 +329,7 @@ function Player:handleDashInput()
     -- makes dash longer if the direction is held.
     -- these timers continue after your state is changed.
     pd.timer.performAfterDelay(500 * (1/GSM), function ()
-        if pd.buttonIsPressed(pd.kButtonA) then
+        if pd.buttonIsPressed(pd.kButtonB) then
             pd.timer.performAfterDelay(500 * (1/GSM), function ()
                 if self.currentState == "dash" then
                     self:changeToIdleState()
@@ -372,7 +379,7 @@ function Player:handleDashJumpInput()
 end
 
 function Player:handleAimSpikeInput()
-    if pd.buttonJustPressed(pd.kButtonUp) then
+    if pd.buttonJustPressed(pd.kButtonA) then
         self:setGSM(_, self.tickStepTable)
         self:changeToSpikeState()
     elseif self.y > ground - 20 then
@@ -397,6 +404,12 @@ function Player:handleSpikeInput()
         end
     else
         self:moveBy(0, ((self.spikeY * (self.spikeDistance)) * GSM))
+    end
+
+    -- bounces the playerY
+    if self.y == ground then
+        self.spikeY *= -1
+        self:setRotation(self:getRotation() - 180)
     end
 
     self.spikeX *= .95 * GSM
@@ -497,7 +510,7 @@ end
 
 function Player:changeToAimSpikeState()
     Spike(self)
-    self:setGSM(2.5)
+    self:setGSM(4)
     self:changeState("aimSpike")
     self.currentStateNumber = 10
 end
@@ -511,6 +524,7 @@ function Player:changeToSpikeState()
     self.minSpikeYDistance = (2 / self.spikeY) * GSM
     self:changeState("spike")
     self.currentStateNumber = 11
+    self:setRotation(pd.getCrankPosition())
 end
 
 -- Physics Helper Functions
@@ -528,6 +542,7 @@ function Player:applyGravity(multiplier)
             self.isJumping = false
             self.usedSpike = false
             self:changeToIdleState()
+            self:setRotation(0)
         elseif GSM == 0 then
             -- this little bit prevents the player from being stuck flying if they somehow get their y acceleration to be 0
             self.yAcceleration = self.storedYAcceleration
