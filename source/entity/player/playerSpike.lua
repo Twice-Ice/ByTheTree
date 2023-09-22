@@ -59,11 +59,27 @@ function Spike:handleState()
     else
         self:remove()
     end
+
+    self:handleSpikeAimInput()
 end
 
 function Spike:handleSpikeAimInput()
+    local pos = pd.getCrankPosition()
+
+    if (pos >= 0 and pos < 110) then
+        print("right flip")
+        self.angle = -(pos * (70/110)) + 180
+    elseif (pos >= 250 and pos < 360) then
+        print("left flip")
+        self.angle = ((-pos + 360) * (70/110)) + 180
+    else
+        self.angle = (pos)
+    end
+
     -- the -90 is to account for the up and down of the crank being different from the numerical up and down
-    self.angle = (pd.getCrankPosition() - 90)
+    self.angle -= 90
+
+    print(math.floor(pos), math.floor(self.angle))
 
     self.spikeXCoordinate = math.ceil(self.distance * math.cos(self.angle/(180/math.pi)))
     self.spikeYCoordinate = math.ceil(self.distance * math.sin(self.angle/(180/math.pi)))
