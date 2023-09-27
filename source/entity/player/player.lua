@@ -88,27 +88,33 @@ function Player:init(x, y)
 
     -- Player Base Stats
     self.HP = 10
-    self.moveSpeed = 4
-    self.jumpSpeed = 6
-    self.yAcceleration = 1
+    self.xVelo = 0
+    self.yVelo = 0
     self.maxFallSpeed = 75
+    self.runSpeed = 4
+    self.jumpSpeed = 8
     self.isInvincible = false
     self.dashDirection = nil
     self.canDash = true
     self.holdJump = false
-    self.isJumping = false
     self.usedSpike = false
     self.groundSlashDuration = 200
     self.airSlashDuration = 300
     spikeAngle = 0
     self.spikeDistance = 75
-    self.minSpikeXDistance = self.moveSpeed
-    self.minSpikeYDistance = self.moveSpeed
+    self.minSpikeXDistance = self.xVelo
+    self.minSpikeYDistance = self.xVelo
     self.spikeX = 0
     self.spikeY = 0
     self.currentStateNumber = 1
     realPlayerY = self.y
     realPlayerX = self.x
+
+    local num = 0
+    for i = self.jumpSpeed, 0, -1 do
+        num += self.jumpSpeed - i
+    end
+    print(num)
 
     -- used in the player state controller as the dispatch table
     self.stateFunctionTable = {
@@ -146,11 +152,6 @@ function Player:update()
 
         self:handleCollisions()
 
-        local ticks = pd.getCrankTicks(20)
-        if ticks ~= 0 then
-            print(ticks)
-        end
-
     distTraveled = pastX - playerX
     totalDistanceTraveled += math.sqrt(distTraveled^2) -- this could be bad for performance but idk
 end
@@ -180,6 +181,8 @@ end
 
 -- main player controler
 function Player:handleState()
+    playerX += (self.xVelo * GSM)
+    self:moveBy(0, self.yVelo * GSM)
     return(self.stateFunctionTable[self.currentStateNumber](self))
 end
 
@@ -195,9 +198,6 @@ function Player:runState()
 end
 
 function Player:jumpState()
-    if self.isJumping then
-        self:moveBy(0, -(self.jumpSpeed * GSM))
-    end
     self:applyGravity()
     self:handleAirInput()
 end
@@ -212,13 +212,13 @@ function Player:slashState()
 end
 
 function Player:airSlashState()
-            -- when in air, slashes downwards.
-        -- you move faster downwards if you aren't applying jump speed anymore.
-        if self.isJumping then
-            self:moveBy(0, -(self.jumpSpeed * GSM))
-        end
-        self:applyGravity()
-        self:handleAirSlashInput()
+    -- when in air, slashes downwards.
+    -- you move faster downwards if you aren't applying jump speed anymore.
+    if self.isJumping then
+        self:moveBy(0, -(self.jumpSpeed * GSM))
+    end
+    self:applyGravity()
+    self:handleAirSlashInput()
 end
 
 function Player:dashState()
@@ -260,18 +260,30 @@ end
 
 function Player:handleGroundInput()
     self:resetRotation()
+
     if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToJumpState()
-    elseif pd.buttonJustPressed(pd.kButtonB) then
+    elseif pd.buttonJustPressed(pd.kButtonB) and self.canDash then
         self:changeToDashState()
     --elseif pd.buttonJustPressed() then
     --    self:changeToSlashState() 
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
-        self:changeToRunState("left")
+        self:doMoveX("left", self.runSpeed)
+        self.globalFlip = 1
+
+        -- animatedSprite automatically goes through the if statment of if your already in this state to not worry about doing the rest of the code.
+        self:changeToRunState()
+        
+        -- this code prevents you from constantly updating this variable.
+        if self.currentStateNumber ~= 2 then self.currentStateNumber = 2 end
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        self:changeToRunState("right")
+        self:doMoveX("right", self.runSpeed)
+        self.globalFlip = 0
+        self:changeToRunState()
+        if self.currentStateNumber ~= 2 then self.currentStateNumber = 2 end
     else
         self:changeToIdleState()
+        self:doXDrag()
     end
 end
 
@@ -281,14 +293,14 @@ function Player:handleAirInput()
         if self.usedSpike == false then
             self:changeToAimSpikeState()
         end
-    elseif pd.buttonJustPressed(pd.kButtonB) then
-        if self.y < ground - 20 then
-            self:changeToAirSlashState()
-        end
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
-        playerX -= (self.moveSpeed * GSM)
+        if self.xVelo > -self.runSpeed then
+            self.xVelo -= 1
+        end
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        playerX += (self.moveSpeed * GSM)
+        if self.xVelo < self.runSpeed then
+            self.xVelo += 1
+        end
     end
 end
 
@@ -298,32 +310,32 @@ function Player:handleSlashInput()
 
     if self.globalFlip == 1 then -- left
         if pd.buttonIsPressed(pd.kButtonLeft) then
-            playerX -= (self.moveSpeed * 1.15) * GSM
+            playerX -= (self.xVelo * 1.15) * GSM
         elseif pd.buttonIsPressed(pd.kButtonRight) then
-            playerX += (self.moveSpeed * .75) * GSM
+            playerX += (self.xVelo * .75) * GSM
         end
     elseif self.globalFlip == 0 then -- right
         if pd.buttonIsPressed(pd.kButtonLeft) then
-            playerX -= (self.moveSpeed * .75) * GSM
+            playerX -= (self.xVelo * .75) * GSM
         elseif pd.buttonIsPressed(pd.kButtonRight) then
-            playerX += (self.moveSpeed * 1.15) * GSM
+            playerX += (self.xVelo * 1.15) * GSM
         end
     end
 end
 
 function Player:handleAirSlashInput()
     if pd.buttonIsPressed(pd.kButtonLeft) then
-        playerX -= self.moveSpeed * GSM
+        playerX -= self.xVelo * GSM
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        playerX += self.moveSpeed * GSM
+        playerX += self.xVelo * GSM
     end
 end
 
 function Player:handleDashInput()
     if self.dashDirection == "left" then
-        playerX -= (self.moveSpeed * 1.5) * GSM
+        self:doMoveX("left", self.runSpeed * 1.5)
     elseif self.dashDirection == "right" then
-        playerX += (self.moveSpeed * 1.5) * GSM
+        self:doMoveX("right", self.runSpeed * 1.5)
     end
 
     -- makes dash longer if the direction is held.
@@ -361,9 +373,9 @@ end
 function Player:handleDashJumpInput()
     -- dash jumps are slightly slower than normal dashes.
     if self.dashDirection == "left" then
-        playerX -= (self.moveSpeed * GSM) * 1.35
+        playerX -= (self.xVelo * GSM) * 1.35
     elseif self.dashDirection == "right" then
-        playerX += (self.moveSpeed * GSM) * 1.35
+        playerX += (self.xVelo * GSM) * 1.35
     end
 
     -- you can slash out of a dash if you were mid air.
@@ -386,10 +398,10 @@ function Player:handleAimSpikeInput()
         self:setGSM(_, self.tickStepTable)
         self:changeToJumpState()
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
-        playerX -= (self.moveSpeed * GSM)
+        playerX -= (self.xVelo * GSM)
         self.globalFlip = 1
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        playerX += (self.moveSpeed * GSM)
+        playerX += (self.xVelo * GSM)
         self.globalFlip = 0
     end
 end
@@ -409,11 +421,11 @@ function Player:handleSpikeInput()
     -- bounces the playerY
     if self.y == ground then
         self.spikeY *= -1
-        self:setRotation(self:getRotation() - 180)
+        self:setRotation(self:getRotation() - 90)
     end
 
-    self.spikeX *= .95 * GSM
-    self.spikeY *= .95 * GSM
+    self.spikeX *= .98 * GSM
+    self.spikeY *= .98 * GSM
     -- https://media.discordapp.net/attachments/982141699029602337/1106751731020333106/IMG_20230512_191601.jpg?width=351&height=780 <- explanation in the form of a line graph.
     -- absolute value is so that if the numbers are negative (or not) then they are always consistent regardless of their original value (pos/neg)
     if not ((self.spikeX > math.abs(self.minSpikeXDistance) or self.spikeX < -math.abs(self.minSpikeXDistance)) or (self.spikeY > math.abs(self.minSpikeYDistance) or self.spikeY < -math.abs(self.minSpikeYDistance))) then
@@ -432,16 +444,17 @@ function Player:changeToIdleState()
 end
 
 function Player:changeToJumpState()
-    pd.timer.performAfterDelay(200, function ()
-        if pd.buttonIsPressed(pd.kButtonA) and self.currentState == "jump" then
-            self.jumpSpeed = 7
-        elseif (not pd.buttonIsPressed(pd.kButtonA)) and self.currentState == "jump" then
-            self.jumpSpeed = 5
-        end
-    end)
+    if self.yVelo == 0 and self.y == ground then
+        pd.timer.performAfterDelay(200, function ()
+            if pd.buttonIsPressed(pd.kButtonA) and self.currentState == "jump" then
+                self.yVelo -= 2
+            elseif (not pd.buttonIsPressed(pd.kButtonA)) and self.currentState == "jump" then
+                self.yVelo += .5
+            end
+        end)
+        self.yVelo -= self.jumpSpeed
+    end
 
-    self.jumpSpeed = 6
-    self.isJumping = true
     self:changeState("jump")
     self.currentStateNumber = 3
 end
@@ -451,14 +464,7 @@ function Player:changeToFallState()
     self.currentStateNumber = 4
 end
 
-function Player:changeToRunState(direction)
-    if direction == "left" then
-        playerX -= (self.moveSpeed * GSM)
-        self.globalFlip = 1
-    elseif direction == "right" then
-        playerX += (self.moveSpeed * GSM)
-        self.globalFlip = 0
-    end
+function Player:changeToRunState()
     self:changeState("run")
     self.currentStateNumber = 2
 end
@@ -503,7 +509,16 @@ function Player:changeToDashState()
 end
 
 function Player:changeToDashJumpState()
-    self.isJumping = true
+    if self.yVelo == 0 and self.y == ground then
+        pd.timer.performAfterDelay(200, function ()
+            if pd.buttonIsPressed(pd.kButtonA) and self.currentState == "jump" then
+                self.yVelo -= 2
+            elseif (not pd.buttonIsPressed(pd.kButtonA)) and self.currentState == "jump" then
+                self.yVelo += .5
+            end
+        end)
+        self.yVelo -= self.jumpSpeed
+    end
     self:changeState("dashJump")
     self.currentStateNumber = 8
 end
@@ -520,8 +535,8 @@ function Player:changeToSpikeState()
     self.spikeDistance = 12.5
     self.spikeX = math.cos(spikeAngle/(180/math.pi))
     self.spikeY = math.sin(spikeAngle/(180/math.pi))
-    self.minSpikeXDistance = (2 / self.spikeX) * GSM
-    self.minSpikeYDistance = (2 / self.spikeY) * GSM
+    self.minSpikeXDistance = (self.spikeX / 2) * GSM
+    self.minSpikeYDistance = (self.spikeY / 2) * GSM
     self:changeState("spike")
     self.currentStateNumber = 11
     self:setRotation(pd.getCrankPosition())
@@ -533,28 +548,55 @@ end
 function Player:applyGravity(multiplier)
     if multiplier == nil then multiplier = 1 end
 
-    if self.y < ground then
-        if self.y + ((self.yAcceleration * GSM) * multiplier) > ground then
-            --prevents player from falling below ground
-            self:moveBy(0, ground - self.y)
-            --resets player gravity because player is now on ground
-            self.yAcceleration = 1
-            self.isJumping = false
-            self.usedSpike = false
+    --print(math.ceil(self.y), self.x, self.yVelo, self.currentState)
+
+    local function touchGrass()
+        --prevents player from falling below ground
+        self:moveTo(self.x, ground)
+        --resets player gravity because player is now on ground
+        self.yVelo = 0
+        self.usedSpike = false
+        self:setRotation(0)
+        if self.currentState == "jump" then
             self:changeToIdleState()
-            self:setRotation(0)
-        elseif GSM == 0 then
-            -- this little bit prevents the player from being stuck flying if they somehow get their y acceleration to be 0
-            self.yAcceleration = self.storedYAcceleration
-        else
-            -- active gravity function
-            self:moveBy(0, ((self.yAcceleration * GSM) * multiplier))
-            if self.yAcceleration * (1 + ((.12 * GSM) * multiplier)) < ((self.maxFallSpeed * GSM) * multiplier) then
-                -- how fast gravity increases. Higher number = more gravity
-                self.yAcceleration *= 1 + ((.12 * GSM) * multiplier)
-            else
-                self.yAcceleration = ((self.maxFallSpeed * GSM) * multiplier) -- max player fall speed
+        end
+    end
+
+    if self.y < ground then
+        if self.y + (self.yVelo * multiplier) >= ground then -- if you're going to move past the ground.
+            touchGrass()
+        else -- if you're just trying to apply gravity.
+            if self.yVelo < self.maxFallSpeed then
+                self.yVelo += (0.75 * multiplier) * GSM
             end
+        end
+    else
+        touchGrass()
+    end
+end
+
+function Player:doXDrag()
+    if math.abs(self.xVelo) <= 1 * GSM then    
+        self.xVelo = 0
+    elseif self.xVelo > 0 then
+        self.xVelo -= 0.7 * GSM
+    elseif self.xVelo < 0 then
+        self.xVelo += 0.7 * GSM
+    end
+end
+
+function Player:doMoveX(direction, speed)
+    if direction == "left" then
+        if self.xVelo > -speed then
+            self.xVelo -= 1 * GSM
+        else
+            self:doXDrag()
+        end
+    elseif direction == "right" then
+        if self.xVelo < speed then
+            self.xVelo += 1 * GSM
+        else
+            self:doXDrag()
         end
     end
 end

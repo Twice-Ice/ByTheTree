@@ -116,8 +116,8 @@ local function startGame()
 	print9  = "  "
 	print10 = "  "
 
-	Player(200, 204)
-	Boss(200, 204)
+	Player(200, 100)
+	--Boss(200, 204)
 	for i = 0, 11 do
 		local distance = 10
 		Ground(0 + (i * 40), 230, 1, ZIndexTable.Ground, 0 + i)
