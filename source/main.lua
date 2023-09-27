@@ -5,7 +5,7 @@ import "CoreLibs/timer"
 import "CoreLibs/crank"
 
 import "entity/player/player"
-import "entity/player/playerSlash"
+--import "entity/player/playerSlash"
 import "entity/player/playerSpike"
 import "entity/boss/boss"
 import "environment/ground/ground"
@@ -105,19 +105,8 @@ end
 
 
 local function startGame()
-	print1  = "  "
-	print2  = "  "
-	print3  = "  "
-	print4  = "  "
-	print5  = "  "
-	print6  = "  "
-	print7  = "  "
-	print8  = "  "
-	print9  = "  "
-	print10 = "  "
-
 	Player(200, 100)
-	--Boss(200, 204)
+	Boss(200, 204)
 	for i = 0, 11 do
 		local distance = 10
 		Ground(0 + (i * 40), 230, 1, ZIndexTable.Ground, 0 + i)
@@ -140,10 +129,7 @@ function playdate.update()
 		currentFrame = 1
 	end
 
-	--print(tostring(print1) .. tostring(print2) .. tostring(print3) .. tostring(print4) .. tostring(print5) .. tostring(print6) .. tostring(print7) .. tostring(print8) .. tostring(print9) .. tostring(print10))
-
 	GSM = gameSpeed/fps
-	--print(gameSpeed .. "/" .. fps .. " = GSM; " .. GSM )
 	pd.drawFPS(0,0) -- FPS widget
 	gfx.sprite.update()
 	pd.timer.updateTimers()

@@ -451,7 +451,7 @@ end
 ---Invoke manually to move the animation to the next frame.
 function AnimatedSprite:updateAnimation()
 	if (self._enabled) then
-		self._ticks += 1
+		self._ticks += math.floor(1 * GSM)
 		if ((self._ticks - self._previousTicks) >= self.states[self.currentState].tickStep) then
 			local state = self.states[self.currentState]
 			local loop = state.loop

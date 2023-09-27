@@ -66,7 +66,7 @@ end
 function Spike:handleSpikeAimInput()
     local pos = pd.getCrankPosition()
 
-    if (pos >= 0 and pos < 110) then
+    --[[if (pos >= 0 and pos < 110) then
         print("right flip")
         self.angle = -(pos * (70/110)) + 180
     elseif (pos >= 250 and pos < 360) then
@@ -74,12 +74,18 @@ function Spike:handleSpikeAimInput()
         self.angle = ((-pos + 360) * (70/110)) + 180
     else
         self.angle = (pos)
+    end]]
+
+    if (pos >= 0 and pos < 90) then
+        self.angle = (pos * (40/90) + 40) - 90
+        self:setRotation(self.angle - 180)
+    elseif (pos >= 270 and pos < 360) then
+        self.angle = ((pos - 270) * (40/90) + 270) - 90
+        self:setRotation(self.angle - 180)
+    else
+        self.angle = pos - 90
+        self:setRotation(self.angle)
     end
-
-    -- the -90 is to account for the up and down of the crank being different from the numerical up and down
-    self.angle -= 90
-
-    print(math.floor(pos), math.floor(self.angle))
 
     self.spikeXCoordinate = math.ceil(self.distance * math.cos(self.angle/(180/math.pi)))
     self.spikeYCoordinate = math.ceil(self.distance * math.sin(self.angle/(180/math.pi)))
@@ -90,8 +96,6 @@ function Spike:handleSpikeAimInput()
     end
 
     self:moveTo(realPlayerX + self.spikeXCoordinate, realPlayerY + self.spikeYCoordinate)
-
-    self:setRotation(self.angle)
 end
 
 function Spike:handleSpikeInput()
