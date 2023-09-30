@@ -119,7 +119,7 @@ function Player:init(x, y)
     --the table that was here and optimized stuff was called a "dispach table"
 
     self:setCollideRect(13, 12, 22, 28)
-    self:setGSM(.125)
+    self:setGSM()
 end
 
 
