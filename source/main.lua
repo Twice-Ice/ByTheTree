@@ -5,7 +5,7 @@ import "CoreLibs/timer"
 import "CoreLibs/crank"
 
 import "entity/player/player"
---import "entity/player/playerSlash"
+import "entity/player/playerSlash"
 import "entity/player/playerSpike"
 import "entity/boss/boss"
 import "environment/ground/ground"

@@ -188,15 +188,10 @@ function Player:handleState()
     elseif self.currentState == "fall" then -- might delete later
         self:applyGravity()
         self:handleAirInput() -- same as jump
-    elseif self.currentState == "dash" then
+    elseif self.currentState == "slash" then
         self:applyGravity()
-        self:handleDashInput()
-    elseif self.currentState == "dashJump" then
-        if self.isJumping then
-            self:moveBy(0, -(self.jumpSpeed * GSM))
-        end
-        self:applyGravity()
-        self:handleDashJumpInput()
+        self:handleSlashInput()
+    
     elseif self.currentState == "aimSpike" then
         self:applyGravity()
         self:handleAimSpikeInput()
@@ -204,6 +199,15 @@ function Player:handleState()
         -- the action of a spike where you shoot twards where you were aiming.
         self:handleSpikeInput()
         self:applyGravity(.5)
+    -- elseif self.currentState == "dash" then
+    --     self:applyGravity()
+    --     self:handleDashInput()
+    -- elseif self.currentState == "dashJump" then
+    --     if self.isJumping then
+    --         self:moveBy(0, -(self.jumpSpeed * GSM))
+    --     end
+    --     self:applyGravity()
+    --     self:handleDashJumpInput()
     end
 end
 
@@ -214,10 +218,10 @@ function Player:handleGroundInput()
 
     if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToJumpState()
-    elseif pd.buttonJustPressed(pd.kButtonB) and self.canDash then
-        self:changeToDashState()
-    --elseif pd.buttonJustPressed() then
-    --    self:changeToSlashState() 
+    -- elseif pd.buttonJustPressed(pd.kButtonB) and self.canDash then
+    --     self:changeToDashState()
+    elseif pd.buttonJustPressed(pd.kButtonB) then
+       self:changeToSlashState() 
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
         self:doMoveX("left", self.runSpeed)
         self.globalFlip = 1
@@ -252,29 +256,10 @@ function Player:handleAirInput()
 end
 
 function Player:handleSlashInput()
-    -- faster moving in the direction of the slash
-    -- slower moving away from the direction of the slash
-
-    if self.globalFlip == 1 then -- left
-        if pd.buttonIsPressed(pd.kButtonLeft) then
-            playerX -= (self.xVelo * 1.15) * GSM
-        elseif pd.buttonIsPressed(pd.kButtonRight) then
-            playerX += (self.xVelo * .75) * GSM
-        end
-    elseif self.globalFlip == 0 then -- right
-        if pd.buttonIsPressed(pd.kButtonLeft) then
-            playerX -= (self.xVelo * .75) * GSM
-        elseif pd.buttonIsPressed(pd.kButtonRight) then
-            playerX += (self.xVelo * 1.15) * GSM
-        end
-    end
-end
-
-function Player:handleAirSlashInput()
     if pd.buttonIsPressed(pd.kButtonLeft) then
-        playerX -= self.xVelo * GSM
+        self:doMoveX("left", self.runSpeed * 1.05)
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        playerX += self.xVelo * GSM
+        self:doMoveX("right", self.runSpeed * 1.05)
     end
 end
 
@@ -317,21 +302,6 @@ function Player:handleDashInput()
     end
 end
 
-function Player:handleDashJumpInput()
-    -- dash jumps are slightly slower than normal dashes.
-    if self.dashDirection == "left" then
-        playerX -= (self.xVelo * GSM) * 1.35
-    elseif self.dashDirection == "right" then
-        playerX += (self.xVelo * GSM) * 1.35
-    end
-
-    if pd.buttonJustPressed(pd.kButtonA) and self.y < ground - 20 then
-        if self.usedSpike == false then
-            self:changeToAimSpikeState()
-        end
-    end
-end
-
 function Player:handleAimSpikeInput()
     if pd.buttonJustPressed(pd.kButtonA) then
         self:setGSM()
@@ -340,11 +310,9 @@ function Player:handleAimSpikeInput()
         self:setGSM()
         self:changeToJumpState()
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
-        playerX -= (self.xVelo * GSM)
-        self.globalFlip = 1
+        self:doMoveX("left", self.runSpeed)
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        playerX += (self.xVelo * GSM)
-        self.globalFlip = 0
+        self:doMoveX("right", self.runSpeed)
     end
 end
 
@@ -462,6 +430,20 @@ function Player:changeToSpikeState()
 
     self:changeState("spike")
     self:setRotation(pd.getCrankPosition())
+end
+
+function Player:changeToSlashState()
+    if self.globalFlip == 1 then -- left
+        Slash(self.x, "left", self.groundSlashDuration * (1/GSM))
+    elseif self.globalFlip == 0 then -- right
+        Slash(self.x, "right", self.groundSlashDuration * (1/GSM))
+    end
+    self:changeState("slash")
+    self.currentStateNumber = 5
+
+    pd.timer.performAfterDelay(self.groundSlashDuration * (1/GSM), function ()
+        self:changeToIdleState()
+    end)
 end
 
 -- Physics Helper Functions
