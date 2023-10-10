@@ -23,16 +23,16 @@ local pd <const> = playdate
 local gfx <const> = pd.graphics
 
 -- fps variables
-fps = 40
+fps = 30
 currentFrame = 1
 -- if refreshrate is ever changed, change the default gamespeed to match it.
 -- to slow down display just manually set fps without changing fps variable.
-pd.display.setRefreshRate(40)
+pd.display.setRefreshRate(fps)
 
 -- game speed variables
-defaultGameSpeed = fps -- if defaultGameSpeed = fps then GSM = 1
+defaultGameSpeed = 1 -- if defaultGameSpeed = fps then GSM = 1
 gameSpeed = defaultGameSpeed
-GSM = gameSpeed/fps
+GSM = gameSpeed * fps/fps
 --GSM; Game Speed Multiplier
 -- higher gameSpeed means higher movement/calculations value. *everything related to movement  SHOULD be multiplied by the GSM*
 
@@ -105,8 +105,8 @@ end
 
 
 local function startGame()
-	Player(200, 100)
-	Boss(200, 204)
+	Player(200, ground)
+	Boss(200, ground)
 	for i = 0, 11 do
 		local distance = 10
 		Ground(0 + (i * 40), 230, 1, ZIndexTable.Ground, 0 + i)
@@ -129,7 +129,7 @@ function playdate.update()
 		currentFrame = 1
 	end
 
-	GSM = gameSpeed/fps
+	GSM = gameSpeed * fps/fps
 	pd.drawFPS(0,0) -- FPS widget
 	gfx.sprite.update()
 	pd.timer.updateTimers()

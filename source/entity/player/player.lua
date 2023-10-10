@@ -166,6 +166,10 @@ function Player:resetRotation()
     end
 end
 
+function Player:yVeloRotation()
+    self:setRotation(math.sin(self.yVelo/self.xVelo))
+end
+
 -- main player controler
 function Player:handleState()
     playerX += (self.xVelo * GSM)
@@ -317,8 +321,9 @@ function Player:handleAimSpikeInput()
 end
 
 function Player:handleSpikeInput()
-    print(self.y, self.xVelo, self.yVelo)
+    print(self.y, self.xVelo, self.yVelo, 100 * math.atan(self.yVelo/self.xVelo) + 90)
     self:doXDrag(.5)
+    self:setRotation((360 * math.atan(self.yVelo/self.xVelo)) + 90)
 
     -- bounces the playerY
     if self.bouncedSpike == false then
@@ -330,7 +335,6 @@ function Player:handleSpikeInput()
                 self.xVelo -= 0
             end
             self.bouncedSpike = true
-            self:setRotation(self:getRotation() - 90)
         end
     else
         self.bouncedSpike = false
@@ -416,6 +420,9 @@ end
 function Player:changeToSpikeState()
     self.usedSpike = true
 
+    self.xVelo = 0
+    self.yVelo = 0
+
     if (spikeAngle >= 0 and spikeAngle < 90) then
         self.yVelo += 15 * math.sin(spikeAngle/(180/math.pi))
         self.xVelo += 10 * math.cos(spikeAngle/(180/math.pi))
@@ -429,7 +436,6 @@ function Player:changeToSpikeState()
 
 
     self:changeState("spike")
-    self:setRotation(pd.getCrankPosition())
 end
 
 function Player:changeToSlashState()
@@ -531,11 +537,11 @@ function Player:handleCollisions()
 
                         if self.currentState == "aimSpike" then
                             self.HP -= damage * 1.5
-                            self:setInvincibleTrue(800)
+                            self:setInvincibleTrue(800 * 1/GSM)
                             setShakeAmount(7)
                         else
                             self.HP -= damage
-                            self:setInvincibleTrue(invincibleTime)
+                            self:setInvincibleTrue(invincibleTime * 1/GSM)
                             setShakeAmount(5)
                         end
 

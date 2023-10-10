@@ -43,7 +43,7 @@ end
 -- if value = nil then GSM will be set to default
 -- value should be between >0 and 1
 function Entity:setGSM(value)
-    if value == nil then value = defaultGameSpeed else value *= 40 end
+    if value == nil then value = defaultGameSpeed end
 
     gameSpeed = value
 end

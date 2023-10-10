@@ -54,8 +54,8 @@ function Spike:handleState()
 
     if self.currentState == "aimSpike" then
         self:handleSpikeAimInput()
-    elseif self.currentState == "spike" then
-        self:handleSpikeInput()
+    -- elseif self.currentState == "spike" then
+    --     self:handleSpikeInput()
     else
         self:remove()
     end
@@ -80,7 +80,7 @@ function Spike:handleSpikeAimInput()
         self.angle = (pos * (40/90) + 40) - 90
         self:setRotation(self.angle - 180)
     elseif (pos >= 270 and pos < 360) then
-        self.angle = ((pos - 270) * (40/90) + 270) - 90
+        self.angle = ((pos - 305) * (40/90) + 305) - 90
         self:setRotation(self.angle - 180)
     else
         self.angle = pos - 90
