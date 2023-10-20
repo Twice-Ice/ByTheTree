@@ -5,7 +5,7 @@ local gfx <const> = pd.graphics
 
 class('Slash').extends("AnimatedSprite")
 
-function Slash:init(x, direction, duration)
+function Slash:init(x, direction)
     local slashTable = gfx.imagetable.new("entity/player/playerImages/slash-table-32-32")
     Slash.super.init(self, slashTable)
 
@@ -24,9 +24,7 @@ function Slash:init(x, direction, duration)
         }
     }, true, "slash")
 
-    pd.timer.performAfterDelay(duration, function ()
-        self:remove()
-    end)
+    
 
     self:setCollideRect(-5, -5, 42, 42)
 end
@@ -40,11 +38,9 @@ function Slash:update()
         self.globalFlip = 1
     elseif self.direction == "right" then
         self:moveTo(self.spawnX + 16, self.playerY)
-    elseif self.direction == "down" then
-        self:moveTo(self.spawnX, self.playerY + 20)
     end
 
-    if self.y == ground - 30 then
+    if playerState ~= "slash" then
         self:remove()
     end
 end

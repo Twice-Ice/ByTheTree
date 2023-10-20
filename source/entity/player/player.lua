@@ -6,12 +6,12 @@ local gfx <const> = pd.graphics
 class('Player').extends("Entity")
 
 function Player:init(x, y)
-    local playerTable = gfx.imagetable.new("entity/player/playerImages/player-table-48-48")
+    local playerTable = gfx.imagetable.new("entity/player/playerImages/player-table-64-64")
     self.tickStepTable = {
         idle = 10,
         run = 4,
         jump = 1, -- anything that is at a value of 1 doesn't have an animation, most likely
-        slash = 1,
+        slash = {2, 2, 3, 1}, -- really wanna make it so that I can pass a table into here and still get it to run. gotta edit animatedSprite for that to work tho.
         airSlash = 1,
         dash = 1,
         dashJump = 1,
@@ -34,43 +34,20 @@ function Player:init(x, y)
         },
         {
             name = "jump",
-            firstFrameIndex = 10,
-            framesCount = 1,
-            tickStep = self.tickStepTable.jump
-        },
-        {
-            name = "fall",
-            firstFrameIndex = 11,
+            firstFrameIndex = 9,
             framesCount = 1,
             tickStep = self.tickStepTable.jump
         },
         {
             name = "slash",
-            firstFrameIndex = 1,
-            framesCount = 1,
-            tickStep = self.tickStepTable.slash
-        },
-        {
-            name = "airSlash",
-            firstFrameIndex = 1,
-            framesCount = 1,
-            tickStep = self.tickStepTable.airSlash
-        },
-        {
-            name = "dash",
-            firstFrameIndex = 9,
-            framesCount = 1,
-            tickStep = self.tickStepTable.dash
-        },
-        {
-            name = "dashJump",
-            firstFrameIndex = 12,
-            framesCount = 1,
-            tickStep = self.tickStepTable.dashJump
+            firstFrameIndex = 11,
+            framesCount = 4,
+            tickStep = self.tickStepTable.slash,
+            nextAnimation = "idle"
         },
         {
             name = "aimSpike", -- this is where the player is mid air, time slows and the crank is used
-            firstFrameIndex = 14, -- this needs to be like an inbetween for the jump and fall animations. 
+            firstFrameIndex = 10, -- this needs to be like an inbetween for the jump and fall animations. 
             framesCount = 1,
             tickStep = self.tickStepTable.aimSpike
         },
@@ -110,19 +87,11 @@ function Player:init(x, y)
     realPlayerY = self.y
     realPlayerX = self.x
 
-    local num = 0
-    for i = self.jumpSpeed, 0, -1 do
-        num += self.jumpSpeed - i
-    end
-    print(num)
-
     --the table that was here and optimized stuff was called a "dispach table"
 
-    self:setCollideRect(13, 12, 22, 28)
+    self:setCollideRect(13+8, 12+8, 22, 28)
     self:setGSM()
 end
-
-
 
 function Player:update()
     local pastX = playerX -- set previous x before any changes
@@ -140,7 +109,7 @@ function Player:update()
         self:handleCollisions()
 
     distTraveled = pastX - playerX
-    totalDistanceTraveled += math.sqrt(distTraveled^2) -- this could be bad for performance but idk
+    totalDistanceTraveled += math.abs(distTraveled) -- this could be bad for performance but idk
 end
 
 -- misc functions
@@ -447,9 +416,7 @@ function Player:changeToSlashState()
     self:changeState("slash")
     self.currentStateNumber = 5
 
-    pd.timer.performAfterDelay(self.groundSlashDuration * (1/GSM), function ()
-        self:changeToIdleState()
-    end)
+    
 end
 
 -- Physics Helper Functions

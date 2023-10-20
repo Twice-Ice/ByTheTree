@@ -452,7 +452,18 @@ end
 function AnimatedSprite:updateAnimation()
 	if (self._enabled) then
 		self._ticks += math.floor(1 * GSM)
-		if ((self._ticks - self._previousTicks) >= self.states[self.currentState].tickStep) then
+		local doAnimation = false
+		if type(self.states[self.currentState].tickStep) == "table" then
+			if ((self._ticks - self._previousTicks) >= self.states[self.currentState].tickStep[self._currentFrame - (self.states[self.currentState].firstFrameIndex - 1)]) then
+				doAnimation = true
+			end
+		elseif type(self.states[self.currentState].tickStep) == "number" then
+			if ((self._ticks - self._previousTicks) >= self.states[self.currentState].tickStep) then
+				doAnimation = true
+			end
+		end
+
+		if doAnimation then
 			local state = self.states[self.currentState]
 			local loop = state.loop
 			local loopsFinished = self._loopsFinished
@@ -464,7 +475,12 @@ function AnimatedSprite:updateAnimation()
 			end
 			processAnimation(self)
 			drawFrame(self)
-			self._previousTicks += state.tickStep * 1/GSM
+
+			if type(self.states[self.currentState].tickStep) == "table" then
+				self._previousTicks += state.tickStep[self._currentFrame - (self.states[self.currentState].firstFrameIndex - 1)] * 1/GSM
+			elseif type(self.states[self.currentState].tickStep) == "number" then
+				self._previousTicks += state.tickStep * 1/GSM
+			end
 		end
 	end
 end

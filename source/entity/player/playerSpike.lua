@@ -7,7 +7,7 @@ class("Spike").extends("AnimatedSprite")
 
 function Spike:init(player)
     -- initializations
-    local SpikeTable = gfx.imagetable.new("entity/player/playerImages/slash-table-32-32")
+    local SpikeTable = gfx.imagetable.new("entity/player/playerImages/spike-table-31-31")
     Spike.super.init(self, SpikeTable)
     self:setCollideRect(10, 10, 10, 10)
     self:setZIndex(ZIndexTable.Spike)
@@ -66,25 +66,15 @@ end
 function Spike:handleSpikeAimInput()
     local pos = pd.getCrankPosition()
 
-    --[[if (pos >= 0 and pos < 110) then
-        print("right flip")
-        self.angle = -(pos * (70/110)) + 180
-    elseif (pos >= 250 and pos < 360) then
-        print("left flip")
-        self.angle = ((-pos + 360) * (70/110)) + 180
-    else
-        self.angle = (pos)
-    end]]
-
     if (pos >= 0 and pos < 90) then
         self.angle = (pos * (40/90) + 40) - 90
-        self:setRotation(self.angle - 180)
+        self:setRotation(self.angle + 90)
     elseif (pos >= 270 and pos < 360) then
-        self.angle = ((pos - 305) * (40/90) + 305) - 90
-        self:setRotation(self.angle - 180)
+        self.angle = ((pos - 270) * (40/90) + 270) - 90
+        self:setRotation(self.angle + 90)
     else
         self.angle = pos - 90
-        self:setRotation(self.angle)
+        self:setRotation(self.angle + 90)
     end
 
     self.spikeXCoordinate = math.ceil(self.distance * math.cos(self.angle/(180/math.pi)))
