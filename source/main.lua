@@ -110,9 +110,9 @@ local function startGame()
 	for i = 0, 11 do
 		local distance = 10
 		Ground(0 + (i * 40), 230, 1, ZIndexTable.Ground, 0 + i)
-		--[[Ground(0 + (i * 40), 230 - distance, .9, ZIndexTable.Ground - 1)
-		Ground(0 + (i * 40), 230 - distance*2, .8, ZIndexTable.Ground - 2)
-		Ground(0 + (i * 40), 230 - distance*3, .7, ZIndexTable.Ground - 3)]]
+		-- Ground(0 + (i * 40), 230 - distance, .9, ZIndexTable.Player - 1, 0 + i)
+		-- Ground(0 + (i * 40), 230 - distance*2, .8, ZIndexTable.Player - 2, i)
+		-- Ground(0 + (i * 40), 230 - distance*3, .7, ZIndexTable.Player - 3, i)
 	end
 
 	for i = 0, 5 do

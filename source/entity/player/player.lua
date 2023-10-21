@@ -8,7 +8,7 @@ class('Player').extends("Entity")
 function Player:init(x, y)
     local playerTable = gfx.imagetable.new("entity/player/playerImages/player-table-64-64")
     self.tickStepTable = {
-        idle = 10,
+        idle = {25, 15, 20},
         run = 4,
         jump = 1, -- anything that is at a value of 1 doesn't have an animation, most likely
         slash = {2, 2, 3, 1}, -- really wanna make it so that I can pass a table into here and still get it to run. gotta edit animatedSprite for that to work tho.
@@ -290,9 +290,14 @@ function Player:handleAimSpikeInput()
 end
 
 function Player:handleSpikeInput()
-    print(self.y, self.xVelo, self.yVelo, 100 * math.atan(self.yVelo/self.xVelo) + 90)
-    self:doXDrag(.5)
-    self:setRotation((360 * math.atan(self.yVelo/self.xVelo)) + 90)
+    print(self.y, self.xVelo, self.yVelo, (math.atan(self.xVelo/self.yVelo)) * (180/math.pi) + 90)
+    self:doXDrag(0.2)
+    local angle = (-math.atan(self.xVelo/self.yVelo)) * (180/math.pi)
+    if angle >= 270 or (angle >= 0 and angle <= 90) then
+        self:setRotation(angle)
+    else
+        self:setRotation(angle + 180)
+    end
 
     -- bounces the playerY
     if self.bouncedSpike == false then
@@ -314,7 +319,7 @@ function Player:handleSpikeInput()
         end
     end
 
-    if math.abs(self.xVelo) < 6.5 and math.abs(self.yVelo) < 3 then
+    if math.abs(self.xVelo) < 0.5 and math.abs(self.yVelo) < 0.5 then
         self.bouncedSpike = false
         if self.y < ground then
             self:changeToJumpState()
@@ -393,16 +398,21 @@ function Player:changeToSpikeState()
     self.yVelo = 0
 
     if (spikeAngle >= 0 and spikeAngle < 90) then
-        self.yVelo += 15 * math.sin(spikeAngle/(180/math.pi))
-        self.xVelo += 10 * math.cos(spikeAngle/(180/math.pi))
+        self.yVelo += 7.5 * math.sin(spikeAngle/(180/math.pi))
+        self.xVelo += 12 * math.cos(spikeAngle/(180/math.pi))
     elseif (spikeAngle >= 270 and spikeAngle < 360) then
-        self.yVelo += 15 * math.sin(spikeAngle/(180/math.pi))
-        self.xVelo += 10 * math.cos(spikeAngle/(180/math.pi))
+        self.yVelo += 7.5 * math.sin(spikeAngle/(180/math.pi))
+        self.xVelo += 12 * math.cos(spikeAngle/(180/math.pi))
     else
-        self.yVelo += 10 * math.sin(spikeAngle/(180/math.pi))
-        self.xVelo += 15 * math.cos(spikeAngle/(180/math.pi))
+        self.yVelo += 4 * math.sin(spikeAngle/(180/math.pi))
+        self.xVelo += 13 * math.cos(spikeAngle/(180/math.pi))
     end
 
+    if self.xVelo > 0 then
+        self.globalFlip = 0
+    elseif self.xVelo < 0 then
+        self.globalFlip = 1
+    end
 
     self:changeState("spike")
 end

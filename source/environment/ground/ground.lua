@@ -46,7 +46,9 @@ function Ground:init(x, y, parallaxPercentage, zIndex, startLocationNum)
     }, true)
 
     self.location = startLocationNum
-    groundTileTable[self.location] = math.random(1, 4)
+    if groundTileTable[self.location] == nil then
+        groundTileTable[self.location] = 1--math.random(1, 4)
+    end
     self:changeGroundImage(groundTileTable[self.location])
 end
 
@@ -78,7 +80,7 @@ function Ground:loadTile(posNeg)
 end
 
 function Ground:update()
-    self.distanceToPlayer = self.realX - (playerX * self.parallaxPercentage)
+    self.distanceToPlayer = self.realX - playerX * self.parallaxPercentage
     self:moveTo(self.distanceToPlayer, self.y)
     
     if self.x >= 440 then
